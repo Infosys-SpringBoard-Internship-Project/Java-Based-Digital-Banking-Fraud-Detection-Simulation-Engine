@@ -56,7 +56,7 @@ ML Plug-in Layer
         ↓
 Dashboard & Monitoring Hub
         ↓
-MySQL Database
+PostgreSQL Database
 ```
 
 ---
@@ -115,7 +115,7 @@ MySQL Database
 * Java
 * Spring Boot
 * Spring REST
-* MySQL
+* PostgreSQL
 
 **Fraud Detection**
 
