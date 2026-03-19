@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FraudShield — Detection Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Barlow+Condensed:wght@300;400;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles/dashboard/dashboard.css">
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a class="nav-logo" href="/pages/index.html" aria-label="Go to home page">
+    <div class="logo-icon"></div>
+    <span class="logo-text">Fraud<span>Shield</span></span>
+  </a>
+  <div class="nav-status" id="system-status">
+    <div class="status-dot"></div>
+    <span id="system-status-text">CHECKING...</span>
+  </div>
+
+<!-- NOTIFICATION BELL -->
+<div style="position:relative;" id="bell-container">
+  <div class="bell-wrap" onclick="toggleNotifPanel()">
+    <span class="bell-icon">🔔</span>
+    <span class="bell-badge" id="bell-badge">0</span>
+  </div>
+
+  <!-- DROPDOWN NOTIFICATION PANEL -->
+  <div class="notif-panel" id="notif-panel">
+    <div class="notif-panel-header">
+      <div class="notif-panel-title">
+        <div class="notif-panel-title-dot"></div>
+        ALERTS
+      </div>
+      <button class="notif-mark-all" onclick="markAllRead()">
+        MARK ALL READ
+      </button>
+    </div>
+    <div class="notif-list" id="notif-list">
+      <div class="notif-empty">No alerts yet</div>
+    </div>
+    <div class="notif-panel-footer">
+      <a href="#" onclick="switchToTransactions()">
+        VIEW ALL TRANSACTIONS →
+      </a>
+    </div>
+  </div>
+</div>
+
+  <div class="nav-tabs">
+    <div class="nav-tab active" data-tab="dashboard"><span>Dashboard</span></div>
+    <div class="nav-tab" data-tab="transactions"><span>Transactions</span></div>
+    <div class="nav-tab" data-tab="manual"><span>Manual Input</span></div>
+    <div class="nav-tab" data-tab="analytics"><span>Analytics</span></div>
+  </div>
+
+<!-- ADMIN INFO + LOGOUT -->
+<div class="nav-admin">
+  <div class="admin-info">
+    <span class="admin-name" id="admin-name">LOADING...</span>
+    <span class="admin-email" id="admin-email"></span>
+    <span class="admin-session" id="admin-session"></span>
+  </div>
+  <button class="btn-logout" onclick="logout()">LOGOUT</button>
+</div>
+</nav>
+<!-- MAIN -->
+<div class="main">
+
+  <!-- TRANSACTIONS -->
+  <div class="section active" id="tab-transactions">
+    <div class="page-header">
+      <div>
+        <div class="page-title">TRANSACTION LOG</div>
+        <div class="page-subtitle">// ALL PROCESSED TRANSACTIONS</div>
+      </div>
+      <button class="btn btn-primary" onclick="loadTransactions()">↺ REFRESH</button>
+    </div>
+
+    <div class="panel">
+      <div class="filters">
+        <span class="filter-label">Filter:</span>
+        <button class="filter-btn active" data-filter="all" onclick="filterTxns(this,'all')">ALL</button>
+        <button class="filter-btn f-critical" data-filter="CRITICAL" onclick="filterTxns(this,'CRITICAL')">CRITICAL</button>
+        <button class="filter-btn f-high" data-filter="HIGH" onclick="filterTxns(this,'HIGH')">HIGH</button>
+        <button class="filter-btn f-medium" data-filter="MEDIUM" onclick="filterTxns(this,'MEDIUM')">MEDIUM</button>
+        <button class="filter-btn" data-filter="LOW" onclick="filterTxns(this,'LOW')">LOW</button>
+        <button class="filter-btn" data-filter="fraud" onclick="filterTxns(this,'fraud')">FRAUD ONLY</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>TXN ID</th>
+              <th>NAME</th>
+              <th>AMOUNT</th>
+              <th>MERCHANT</th>
+              <th>LOCATION</th>
+              <th>IP TAG</th>
+              <th>RISK</th>
+              <th>SCORE</th>
+              <th>STATUS</th>
+            </tr>
+          </thead>
+          <tbody id="txn-tbody">
+            <tr><td colspan="9" style="text-align:center; padding:40px; color:var(--text-muted); font-family:var(--font-mono);">Click Refresh to load transactions</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div><!-- /main -->
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">TRANSACTION DETAIL</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+<!-- TOASTS -->
+<div class="toast-container" id="toasts"></div>
+
+<!-- AUTH CHECKING OVERLAY (shown for ~300ms on load) -->
+<div class="auth-checking" id="auth-overlay">
+  VERIFYING SESSION...
+</div>
+<script src="/scripts/dashboard/dashboard.js"></script>
+</body>
+</html>
