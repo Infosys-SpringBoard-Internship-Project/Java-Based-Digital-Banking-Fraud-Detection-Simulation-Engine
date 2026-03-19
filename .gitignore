@@ -1,0 +1,20 @@
+# Maven
+/target/
+
+# Python virtual env and cache
+ml/.venv/
+ml/__pycache__/
+ml/*.pyc
+ml/**/__pycache__/
+ml/**/*.pyc
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
