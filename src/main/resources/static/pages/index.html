@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FRAUDSHIELD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800&family=Barlow:wght@300;400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles/home.css">
+</head>
+<body>
+
+  <!-- SECTION 1: HERO -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-content">
+      <div class="logo-hex"></div>
+      <h1 class="title">FRAUDSHIELD</h1>
+      <p class="subtitle">AI-Powered Digital Banking Fraud Detection & Simulation Engine</p>
+      
+      <div class="hero-buttons">
+        <a href="/pages/dashboard.html" class="btn btn-cyan">ENTER DASHBOARD</a>
+        <a href="/pages/admin-login.html" class="btn btn-ghost">ADMIN LOGIN</a>
+      </div>
+
+      <div class="stats-container">
+        <div class="stat-box">
+          <div class="stat-number" data-target="14">0</div>
+          <div class="stat-label">DETECTION RULES</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" data-target="7">0</div>
+          <div class="stat-label">FRAUD SCENARIOS</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" data-target="11">0</div>
+          <div class="stat-label">API ENDPOINTS</div>
+        </div>
+      </div>
+
+      <div class="rt-monitor">
+        <div class="rt-dot"></div>
+        <span class="rt-text">REAL-TIME MONITORING</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: DETECTION PIPELINE -->
+  <section class="pipeline">
+    <h2 class="section-title">THE DETECTION PIPELINE</h2>
+    <div class="pipe-wrapper">
+      <div class="pipe-line"></div>
+      
+      <div class="step">
+        <div class="step-num">01</div>
+        <h3 class="step-title">GENERATE</h3>
+        <p class="step-desc">Synthetic transaction created</p>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <h3 class="step-title">VALIDATE</h3>
+        <p class="step-desc">16 field checks enforced</p>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <h3 class="step-title">DETECT</h3>
+        <p class="step-desc">14 rules scored 0–10</p>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <h3 class="step-title">ML SCORE</h3>
+        <p class="step-desc">Random Forest probability</p>
+      </div>
+      <div class="step">
+        <div class="step-num">05</div>
+        <h3 class="step-title">ALERT</h3>
+        <p class="step-desc">Email + notification fired</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SECTION 3: 14 ACTIVE RULES -->
+  <section class="rules">
+    <h2 class="section-title">14 ACTIVE DETECTION RULES</h2>
+    <div class="rules-grid">
+
+      <div class="rule-card score-med">
+        <div class="rc-header"><span class="rc-code">R01</span><span class="rc-score">+2.5</span></div>
+        <h4 class="rc-title">High Amount</h4>
+        <p class="rc-trigger">amount ≥ ₹50,000</p>
+      </div>
+
+      <div class="rule-card score-crit">
+        <div class="rc-header"><span class="rc-code">R01</span><span class="rc-score">+4.0</span></div>
+        <h4 class="rc-title">Critical Amount</h4>
+        <p class="rc-trigger">amount ≥ ₹1,00,000</p>
+      </div>
+
+      <div class="rule-card score-med">
+        <div class="rc-header"><span class="rc-code">R02</span><span class="rc-score">+2.0</span></div>
+        <h4 class="rc-title">Odd Hours</h4>
+        <p class="rc-trigger">1 AM – 4 AM</p>
+      </div>
+
+      <div class="rule-card score-high">
+        <div class="rc-header"><span class="rc-code">R03</span><span class="rc-score">+3.5</span></div>
+        <h4 class="rc-title">Balance Drain</h4>
+        <p class="rc-trigger">debit ≥ 90% balance</p>
+      </div>
+
+      <div class="rule-card">
+        <div class="rc-header"><span class="rc-code">R04</span><span class="rc-score">+1.5</span></div>
+        <h4 class="rc-title">Frequent Txns</h4>
+        <p class="rc-trigger">≥ 4 transactions/hour</p>
+      </div>
+
+      <div class="rule-card score-med">
+        <div class="rc-header"><span class="rc-code">R04</span><span class="rc-score">+3.0</span></div>
+        <h4 class="rc-title">Rapid Fire</h4>
+        <p class="rc-trigger">≥ 8 transactions/hour</p>
+      </div>
+
+      <div class="rule-card score-med">
+        <div class="rc-header"><span class="rc-code">R05</span><span class="rc-score">+3.0</span></div>
+        <h4 class="rc-title">Crypto Merchant</h4>
+        <p class="rc-trigger">merchantCategory = crypto</p>
+      </div>
+
+      <div class="rule-card score-med">
+        <div class="rc-header"><span class="rc-code">R05</span><span class="rc-score">+2.5</span></div>
+        <h4 class="rc-title">Gambling Merchant</h4>
+        <p class="rc-trigger">merchantCategory = gambling</p>
+      </div>
+
+      <div class="rule-card score-crit">
+        <div class="rc-header"><span class="rc-code">R05</span><span class="rc-score">+5.0</span></div>
+        <h4 class="rc-title">Dark Web</h4>
+        <p class="rc-trigger">merchantCategory = darkweb</p>
+      </div>
+
+      <div class="rule-card score-med">
+        <div class="rc-header"><span class="rc-code">R06</span><span class="rc-score">+2.0</span></div>
+        <h4 class="rc-title">Location Jump</h4>
+        <p class="rc-trigger">new location > 500km</p>
+      </div>
+
+      <div class="rule-card score-high">
+        <div class="rc-header"><span class="rc-code">R06</span><span class="rc-score">+3.5</span></div>
+        <h4 class="rc-title">Impossible Travel</h4>
+        <p class="rc-trigger">new location > 1000km</p>
+      </div>
+
+      <div class="rule-card">
+        <div class="rc-header"><span class="rc-code">R07</span><span class="rc-score">+1.5</span></div>
+        <h4 class="rc-title">New Device</h4>
+        <p class="rc-trigger">isNewDevice = true</p>
+      </div>
+
+      <div class="rule-card score-high">
+        <div class="rc-header"><span class="rc-code">R08</span><span class="rc-score">+3.5</span></div>
+        <h4 class="rc-title">TOR Network</h4>
+        <p class="rc-trigger">ipRiskTag = TOR</p>
+      </div>
+
+      <div class="rule-card score-med">
+        <div class="rc-header"><span class="rc-code">R09</span><span class="rc-score">+2.0</span></div>
+        <h4 class="rc-title">International</h4>
+        <p class="rc-trigger">isInternational + non-INR</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SECTION 4: TECH STACK -->
+  <section class="tech">
+    <h2 class="section-title">BUILT WITH</h2>
+    <div class="tech-container">
+      <div class="tech-card">
+        <h4 class="tech-title">Spring Boot 3.4.1</h4>
+        <p class="tech-role">Backend API & Pipeline</p>
+      </div>
+      <div class="tech-card">
+        <h4 class="tech-title">Java 17</h4>
+        <p class="tech-role">Core Business Logic</p>
+      </div>
+      <div class="tech-card">
+        <h4 class="tech-title">PostgreSQL</h4>
+        <p class="tech-role">Transaction Storage</p>
+      </div>
+      <div class="tech-card">
+        <h4 class="tech-title">Python 3</h4>
+        <p class="tech-role">ML Training Scripts</p>
+      </div>
+      <div class="tech-card">
+        <h4 class="tech-title">scikit-learn</h4>
+        <p class="tech-role">Random Forest Model</p>
+      </div>
+      <div class="tech-card">
+        <h4 class="tech-title">Flask</h4>
+        <p class="tech-role">ML Prediction API</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 5: FOOTER -->
+  <footer class="footer">
+    <div class="foot-title">FRAUDSHIELD</div>
+    <div class="foot-desc">Built for internship demonstration — Infosys Project</div>
+    <div class="foot-desc">Licensed under the MIT License.</div>
+    <div class="foot-links">
+      <a href="/pages/dashboard.html">Dashboard</a>
+      <a href="/pages/admin-login.html">Login</a>
+    </div>
+  </footer>
+
+  <!-- ANIMATION SCRIPTS -->
+  <script src="/scripts/home.js"></script>
+</body>
+</html>
