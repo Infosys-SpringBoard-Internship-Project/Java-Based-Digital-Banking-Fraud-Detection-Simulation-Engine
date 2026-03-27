@@ -49,9 +49,10 @@ public class TransactionService {
     public boolean isMlApiHealthy() {
         try {
             @SuppressWarnings("unchecked")
-            Map<String, Object> health = restTemplate.getForObject(mlHealthUrl, Map.class);
+            Map<String, Object> health = restTemplate.getForObject(normalizeMlUrl(mlHealthUrl), Map.class);
             return health != null && "running".equalsIgnoreCase(String.valueOf(health.get("status")));
         } catch (Exception e) {
+            System.out.println("[ML] Health check failed: " + e.getMessage());
             return false;
         }
     }
@@ -565,7 +566,7 @@ public class TransactionService {
 
             @SuppressWarnings("unchecked")
             Map<String, Object> mlResp =
-                    restTemplate.postForObject(mlApiUrl, payload, Map.class);
+                    restTemplate.postForObject(normalizeMlUrl(mlApiUrl), payload, Map.class);
 
             if (mlResp != null && mlResp.containsKey("fraud_probability")) {
                 return ((Number) mlResp.get("fraud_probability")).doubleValue();
@@ -575,5 +576,16 @@ public class TransactionService {
                                + e.getMessage());
         }
         return 0.0;
+    }
+
+    private String normalizeMlUrl(String raw) {
+        if (raw == null) {
+            return "http://127.0.0.1:5000/health";
+        }
+        String value = raw.trim();
+        if (value.startsWith("http://") || value.startsWith("https://")) {
+            return value;
+        }
+        return "https://" + value;
     }
 }

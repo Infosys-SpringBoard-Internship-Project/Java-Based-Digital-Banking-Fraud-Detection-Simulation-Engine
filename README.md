@@ -141,10 +141,7 @@ Optional:
 
 - `MAIL_SENDER`
 - `MAIL_PASSWORD`
-- `ML_AUTOTRAIN_ENABLED`
-- `ML_AUTOTRAIN_INTERVAL_MINUTES`
-- `ML_AUTOTRAIN_BATCH_SIZE`
-- `ML_AUTOTRAIN_MIN_RECORDS`
+- ML model artifacts are loaded from `ml/models/` (auto-train removed)
 
 ## Run with Docker
 
