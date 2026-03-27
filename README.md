@@ -25,12 +25,12 @@
 
 | Name | GitHub |
 |---|---|
-| Team Member 1 | `@username1` |
-| Team Member 2 | `@username2` |
-| Team Member 3 | `@username3` |
-| Team Member 4 | `@username4` |
-| Team Member 5 | `@username5` |
-| Team Member 6 | `@username6` |
+| Team Member 1 | `@advikagarwal` |
+| Team Member 2 | `@Shakthisri16` |
+| Team Member 3 | `@tarakeshwararao-S` |
+| Team Member 4 | `@nishika701` |
+| Team Member 5 | `@jaswanth82006` |
+| Team Member 6 | `@GNavya15` |
 
 ## Overview
 
@@ -370,9 +370,6 @@ spring.mail.username=
 spring.mail.password=
 spring.mail.properties.mail.smtp.auth=true
 spring.mail.properties.mail.smtp.starttls.enable=true
-
-# Alert recipient override.
-admin.alert.email=
 ```
 
 > Session lifetime is currently fixed in code at `8` hours inside `AuthService`. It is not externalized as a Spring property in this repository snapshot.
