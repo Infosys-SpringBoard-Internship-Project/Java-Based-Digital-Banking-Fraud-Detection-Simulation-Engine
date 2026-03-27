@@ -1,8 +1,6 @@
 # FraudShield
 
-AI-powered digital banking fraud detection and simulation engine built with Spring Boot (backend), Flask (ML inference), and PostgreSQL.
-
-## Badges
+AI-powered digital banking fraud detection and simulation platform built with Spring Boot, Flask, and PostgreSQL.
 
 ![Java](https://img.shields.io/badge/Java-17-blue)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-green)
@@ -11,38 +9,73 @@ AI-powered digital banking fraud detection and simulation engine built with Spri
 ![Flask](https://img.shields.io/badge/Flask-API-black)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-## Table of contents
+## Live Links
+
+- App: `https://fraudshield-app.onrender.com`
+- ML Service: `https://fraudshield-ml-pwd9.onrender.com`
+- ML Health: `https://fraudshield-ml-pwd9.onrender.com/health`
+
+## Table of Contents
 
 - [Overview](#overview)
+- [Problem Statement](#problem-statement)
+- [Solution Approach](#solution-approach)
 - [Key Features](#key-features)
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
-- [Local Setup](#local-setup)
+- [Getting Started (Local)](#getting-started-local)
 - [Environment Variables](#environment-variables)
 - [Run with Docker](#run-with-docker)
-- [Render Deployment](#render-deployment)
+- [Deploy on Render](#deploy-on-render)
 - [API Modules](#api-modules)
+- [Troubleshooting](#troubleshooting)
+- [Security Notes](#security-notes)
+- [Contributing](#contributing)
 - [Team](#team)
 - [License](#license)
 
 ## Overview
 
-FraudShield evaluates banking transactions using a hybrid approach:
+FraudShield helps operations teams detect suspicious digital banking transactions in near real time.
 
-- Rule engine (`R01` to `R14`) for deterministic risk checks
-- ML inference service for fraud probability scoring
+It combines:
+- deterministic fraud rules (`R01` to `R14`) for explainable detection
+- machine-learning scoring for probabilistic risk estimation
 
-The platform provides dashboard monitoring, alerting, auditing, simulation, and export workflows for fraud operations.
+The platform includes dashboard analytics, alerting, audit trails, simulation workflows, and export utilities for investigation and compliance support.
+
+## Problem Statement
+
+Digital banking fraud is difficult to detect with only static thresholds or only black-box ML models.
+
+Common operational issues include:
+- delayed fraud identification
+- low explainability for flagged transactions
+- weak audit and investigation workflow
+- fragmented tooling for monitoring, simulation, and alerting
+
+## Solution Approach
+
+FraudShield uses a hybrid pipeline:
+
+1. Validate incoming transaction details.
+2. Apply rule-based risk logic (`R01`-`R14`) to generate explainable signals.
+3. Call Flask ML inference (`/predict`) to compute fraud probability.
+4. Merge rule score + ML confidence for final risk classification.
+5. Persist transaction, trigger alerts, and expose operational metrics.
+
+This keeps detection both practical (explainable rules) and adaptive (ML-assisted scoring).
 
 ## Key Features
 
 - Hybrid fraud detection (rules + ML)
 - Role-based access (`SUPERADMIN`, `ADMIN`, `ANALYST`)
 - Manual and simulated transaction validation
-- Real-time alerting and fraud log views
-- Audit trail and CSV exports
-- Deploy-ready via Docker + Render (`render.yaml`)
+- Risk-level based alerting and fraud reasons
+- System health visibility (DB/ML/email/API metrics)
+- Audit logs and CSV exports for compliance workflows
+- Production-ready deployment using Docker + Render blueprint
 
 ## Architecture
 
@@ -58,12 +91,12 @@ PostgreSQL (Supabase)      Flask ML API (/health, /predict)
 
 ## Tech Stack
 
-- Java 17, Spring Boot 3
-- Python 3, Flask, scikit-learn
-- PostgreSQL (Supabase-compatible)
-- Maven
-- Docker
-- Render
+- Backend: Java 17, Spring Boot 3
+- ML Inference: Python 3, Flask, scikit-learn
+- Database: PostgreSQL (Supabase pooler)
+- Build Tool: Maven
+- Containers: Docker
+- Hosting: Render
 
 ## Project Structure
 
@@ -90,10 +123,18 @@ PostgreSQL (Supabase)      Flask ML API (/health, /predict)
 ├── .gitignore
 ├── pom.xml
 ├── LICENSE
-└── license.txt
 ```
 
-## Local Setup
+## Getting Started (Local)
+
+### Prerequisites
+
+- Java 17+
+- Maven 3.8+
+- Python 3.10+
+- Docker (optional)
+
+### Steps
 
 1. Copy environment template:
 
@@ -101,22 +142,15 @@ PostgreSQL (Supabase)      Flask ML API (/health, /predict)
 cp .env.example .env.local
 ```
 
-2. Update required values in `.env.local`:
+2. Configure `.env.local` values.
 
-- `SPRING_DATASOURCE_URL`
-- `SPRING_DATASOURCE_USERNAME`
-- `SPRING_DATASOURCE_PASSWORD`
-- `ML_API_URL`
-- `ML_HEALTH_URL`
-
-3. Start app + ML service:
+3. Start backend + ML service:
 
 ```bash
 ./run_project.sh
 ```
 
 4. Open in browser:
-
 - `http://localhost:8080/pages/index.html`
 - `http://localhost:8080/pages/admin-login.html`
 - `http://localhost:8080/pages/dashboard.html`
@@ -129,19 +163,20 @@ cp .env.example .env.local
 
 ## Environment Variables
 
-Required:
+| Variable | Required | Example | Purpose |
+|---|---|---|---|
+| `SPRING_DATASOURCE_URL` | Yes | `jdbc:postgresql://aws-1-ap-south-1.pooler.supabase.com:6543/postgres?sslmode=require` | JDBC connection string for PostgreSQL |
+| `SPRING_DATASOURCE_USERNAME` | Yes | `postgres.ktmcqxdhjqjsltacucbo` | DB username (Supabase pooler format) |
+| `SPRING_DATASOURCE_PASSWORD` | Yes | `<db-password>` | DB password |
+| `ML_API_URL` | Yes | `https://fraudshield-ml-pwd9.onrender.com/predict` | ML inference endpoint |
+| `ML_HEALTH_URL` | Yes | `https://fraudshield-ml-pwd9.onrender.com/health` | ML health endpoint |
+| `MAIL_SENDER` | No | `alerts@example.com` | Sender email for alert notifications |
+| `MAIL_PASSWORD` | No | `<app-password>` | App password for mail provider |
 
-- `SPRING_DATASOURCE_URL`
-- `SPRING_DATASOURCE_USERNAME`
-- `SPRING_DATASOURCE_PASSWORD`
-- `ML_API_URL`
-- `ML_HEALTH_URL`
-
-Optional:
-
-- `MAIL_SENDER`
-- `MAIL_PASSWORD`
-- ML model artifacts are loaded from `ml/models/` (auto-train removed)
+Notes:
+- ML auto-train pipeline is removed.
+- Application uses existing model artifacts under `ml/models/`.
+- Always include protocol (`https://`) in ML URLs.
 
 ## Run with Docker
 
@@ -170,17 +205,27 @@ docker run --rm -p 8080:8080 \
   fraudshield-app
 ```
 
-## Render Deployment
+## Deploy on Render
 
-1. Push this repo to GitHub.
-2. In Render: **New + -> Blueprint**.
-3. Select this repository (reads `render.yaml`).
-4. Set environment variables on app service:
-   - `SPRING_DATASOURCE_URL`
-   - `SPRING_DATASOURCE_USERNAME`
-   - `SPRING_DATASOURCE_PASSWORD`
-   - `ML_API_URL`
-   - `ML_HEALTH_URL`
+1. Push repository to GitHub.
+2. In Render, create **Blueprint** deployment from `render.yaml`.
+3. Configure app environment variables.
+4. Deploy ML service, then app service.
+
+Recommended Render env values:
+
+```env
+SPRING_DATASOURCE_URL=jdbc:postgresql://aws-1-ap-south-1.pooler.supabase.com:6543/postgres?sslmode=require
+SPRING_DATASOURCE_USERNAME=postgres.ktmcqxdhjqjsltacucbo
+SPRING_DATASOURCE_PASSWORD=<your-db-password>
+ML_API_URL=https://fraudshield-ml-pwd9.onrender.com/predict
+ML_HEALTH_URL=https://fraudshield-ml-pwd9.onrender.com/health
+```
+
+Important:
+- Do not embed username/password inside `SPRING_DATASOURCE_URL`.
+- Keep DB username/password in their dedicated env variables.
+- If ML URL changes, update both `ML_API_URL` and `ML_HEALTH_URL`.
 
 ## API Modules
 
@@ -191,27 +236,48 @@ docker run --rm -p 8080:8080 \
 - System: `/system/*`
 - Audit: `/audit/*`
 
+## Troubleshooting
 
-## Documentation
+- `ML: DOWN` while `/health` returns running:
+  - verify `ML_API_URL` and `ML_HEALTH_URL` include `https://`
+  - redeploy `fraudshield-app`
 
-- Render deployment: `docs/guides/RENDER_DEPLOY_GUIDE.md`
-- Local run guide: `docs/guides/RUN_GUIDE.md`
-- Project architecture and flow: `docs/architecture/PROJECT_DEEP_DIVE.md`
+- `Unable to commit against JDBC Connection`:
+  - verify Supabase pooler host/port/username/password
+  - ensure `sslmode=require`
+
+- `Authentication error ... no user`:
+  - confirm `SPRING_DATASOURCE_USERNAME` format is `postgres.<project-ref>`
+
+- App fails during DB initialization:
+  - recheck datasource URL and credentials
+  - verify pooler connectivity from Render
+
+## Security Notes
+
+- Never commit `.env`, `.env.local`, or production secrets.
+- Rotate DB and mail credentials if exposed.
+- Use least-privilege DB credentials in production.
+- Prefer secret managers and protected CI/CD variables.
+
+## Contributing
+
+1. Create a feature branch.
+2. Commit focused changes with clear commit messages.
+3. Open a pull request to `develop` or `main` as per repository workflow.
+4. Ensure deployment/config changes are documented in README.
 
 ## Team
 
 | Name | GitHub |
 |---|---|
-| Team Member 1 | [@username1](https://github.com/username1) |
-| Team Member 2 | [@username2](https://github.com/username2) |
-| Team Member 3 | [@username3](https://github.com/username3) |
-| Team Member 4 | [@username4](https://github.com/username4) |
-| Team Member 5 | [@username5](https://github.com/username5) |
-| Team Member 6 | [@username6](https://github.com/username6) |
-
-> Replace `username1..username6` with the actual GitHub usernames.
+| Team Member 1 | [@advikagarwal](https://github.com/advikagarwal) |
+| Team Member 2 | [@Shakthisri16](https://github.com/Shakthisri16) |
+| Team Member 3 | [@tarakeshwararao-S](https://github.com/tarakeshwararao-S) |
+| Team Member 4 | [@nishika701](https://github.com/nishika701) |
+| Team Member 5 | [@jaswanth82006](https://github.com/jaswanth82006) |
+| Team Member 6 | [@GNavya15](https://github.com/GNavya15) |
 
 ## License
 
 - `LICENSE`
-- `license.txt`
