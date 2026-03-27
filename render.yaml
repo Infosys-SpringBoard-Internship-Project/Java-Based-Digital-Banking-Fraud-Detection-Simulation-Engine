@@ -15,7 +15,4 @@ services:
     dockerfilePath: ./Dockerfile
     plan: free
     autoDeploy: true
-    envVars:
-      - key: ML_AUTOTRAIN_ENABLED
-        value: "false"
     healthCheckPath: /pages/index.html
