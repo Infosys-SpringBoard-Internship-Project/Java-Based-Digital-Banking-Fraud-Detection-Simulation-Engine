@@ -23,6 +23,7 @@ AI-powered digital banking fraud detection and simulation engine built with Spri
 - [Run with Docker](#run-with-docker)
 - [Render Deployment](#render-deployment)
 - [API Modules](#api-modules)
+- [Render Troubleshooting](#render-troubleshooting)
 - [Team](#team)
 - [License](#license)
 
@@ -141,7 +142,11 @@ Optional:
 
 - `MAIL_SENDER`
 - `MAIL_PASSWORD`
-- ML model artifacts are loaded from `ml/models/` (auto-train removed)
+
+Notes:
+
+- ML auto-train is removed.
+- The app uses existing model artifacts from `ml/models/`.
 
 ## Run with Docker
 
@@ -182,6 +187,20 @@ docker run --rm -p 8080:8080 \
    - `ML_API_URL`
    - `ML_HEALTH_URL`
 
+Recommended values for Supabase pooler + Render:
+
+```env
+SPRING_DATASOURCE_URL=jdbc:postgresql://aws-1-ap-south-1.pooler.supabase.com:6543/postgres?sslmode=require
+SPRING_DATASOURCE_USERNAME=postgres.ktmcqxdhjqjsltacucbo
+SPRING_DATASOURCE_PASSWORD=<your-db-password>
+ML_API_URL=https://fraudshield-ml-pwd9.onrender.com/predict
+ML_HEALTH_URL=https://fraudshield-ml-pwd9.onrender.com/health
+```
+
+Important:
+- Always include `https://` in `ML_API_URL` and `ML_HEALTH_URL`.
+- Keep username/password as separate env vars (do not embed in JDBC URL).
+
 ## API Modules
 
 - Auth: `/auth/*`
@@ -190,6 +209,13 @@ docker run --rm -p 8080:8080 \
 - Simulation: `/simulation/*`
 - System: `/system/*`
 - Audit: `/audit/*`
+
+## Render Troubleshooting
+
+- `ML: DOWN` while ML health URL works: verify app env has full URL with `https://` and redeploy app.
+- `Unable to commit against JDBC Connection`: recheck Supabase pooler host/port/user/password.
+- `Authentication error ... no user`: confirm `SPRING_DATASOURCE_USERNAME` is exactly `postgres.<project-ref>` for pooler.
+- App starts then fails during DB init: verify `SPRING_DATASOURCE_URL` uses the pooler endpoint and `sslmode=require`.
 
 ## Team
 
