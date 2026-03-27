@@ -1,0 +1,26 @@
+name: Keep Render Services Alive
+
+on:
+  schedule:
+    # Run every 5 minutes to avoid Render free-tier suspension
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping-services:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Ping ML health endpoint
+        run: |
+          code=$(curl -sS -L -o /dev/null -w "%{http_code}" "https://fraudshield-ml-pwd9.onrender.com/health")
+          echo "ML endpoint HTTP: ${code}"
+
+      - name: Ping app index page
+        run: |
+          code=$(curl -sS -L -o /dev/null -w "%{http_code}" "https://fraudshield-app.onrender.com/pages/index.html")
+          echo "App endpoint HTTP: ${code}"
+
+      - name: Done
+        run: echo "Keep-alive run completed at $(date -u)"
