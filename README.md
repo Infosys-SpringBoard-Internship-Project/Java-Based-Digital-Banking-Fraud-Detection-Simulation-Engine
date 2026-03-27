@@ -1,41 +1,23 @@
 # FraudShield
 
-FraudShield is a hybrid fraud-detection platform for digital banking that combines a Spring Boot backend, a Flask ML inference service, and a web dashboard for operations, simulation, and audit visibility.
-
-## Table of contents
-
-- [Overview](#overview)
-- [Key features](#key-features)
-- [Architecture](#architecture)
-- [Project structure](#project-structure)
-- [Tech stack](#tech-stack)
-- [Getting started (local)](#getting-started-local)
-- [Environment variables](#environment-variables)
-- [Running with Docker](#running-with-docker)
-- [Deploying on Render](#deploying-on-render)
-- [API overview](#api-overview)
-- [Documentation](#documentation)
-- [Repository hygiene (.gitignore)](#repository-hygiene-gitignore)
-- [Team](#team)
-- [License](#license)
+FraudShield is a digital banking fraud detection and simulation engine built with Spring Boot and a Flask-based ML API.
 
 ## Overview
 
-The platform evaluates transactions using two layers:
-- Rule engine (`R01` to `R14`) for deterministic, explainable checks.
-- ML model scoring for probabilistic fraud detection.
+The system processes transactions using:
+- Rule-based fraud checks (`R01` to `R14`)
+- ML probability scoring from a separate inference service
 
-It then stores results, raises alerts, supports CSV export, records audit/API logs, and provides dashboard analytics.
+It stores transaction decisions, raises alerts, tracks audit logs, and serves a dashboard.
 
 ## Key features
 
-- Hybrid fraud detection (rules + ML fallback/upgrade flow)
+- Hybrid fraud detection (rules + ML)
 - Role-based access (`SUPERADMIN`, `ADMIN`, `ANALYST`)
-- Manual validation + simulated traffic generation
-- Alerts and optional email notifications
-- Audit logs and API request logs
-- Transaction analytics and export endpoints
-- Render-ready Docker deployment for app + ML service
+- Manual transaction validation and simulation
+- Alerting and audit visibility
+- CSV export and dashboard analytics
+- Docker + Render deployment
 
 ## Architecture
 
@@ -53,7 +35,7 @@ Spring Boot API + Session/Auth + Rule Engine
 ## Project structure
 
 ```text
-fraud-project-source/
+.
 ├── src/                                   # Spring Boot source
 │   └── main/
 │       ├── java/com/example/infosys_project/
@@ -66,19 +48,12 @@ fraud-project-source/
 │   ├── train_model.py
 │   ├── requirements.txt
 │   ├── models/
-│   ├── data/
-│   └── tests/
-├── e2e-tests/                             # Playwright tests
-├── docs/
-│   ├── architecture/PROJECT_DEEP_DIVE.md
-│   └── guides/
-│       ├── RENDER_DEPLOY_GUIDE.md
-│       └── RUN_GUIDE.md
+│   └── data/
 ├── Dockerfile                             # Spring Boot image
 ├── ml/Dockerfile                          # ML image
-├── render.yaml                            # Render blueprint (2 services)
-├── run_project.sh                         # Local launcher (app + ML)
-├── stop_project.sh                        # Local stop script
+├── render.yaml                            # Render blueprint
+├── run_project.sh                         # Local launcher
+├── stop_project.sh                        # Stop script
 ├── .env.example
 ├── .gitignore
 ├── LICENSE
@@ -88,81 +63,57 @@ fraud-project-source/
 
 ## Tech stack
 
-- Backend: Java 17, Spring Boot 3
-- Database: PostgreSQL (Supabase)
-- ML service: Python 3, Flask, scikit-learn
-- Frontend: HTML/CSS/JS static pages
-- E2E tests: Playwright
-- Deployment: Docker + Render
+- Java 17, Spring Boot 3
+- PostgreSQL (Supabase)
+- Python 3, Flask, scikit-learn
+- Docker, Render
 
-## Getting started (local)
+## Quick start (local)
 
-### 1) Prerequisites
-
-- Java 17+
-- Maven 3.8+ (or `mvnw`)
-- Python 3.10+
-- PostgreSQL/Supabase credentials
-
-### 2) Configure environment
+1. Copy env template:
 
 ```bash
 cp .env.example .env.local
 ```
 
-Update `.env.local` with real values.
-
-### 3) Start full stack
-
-```bash
-./run_project.sh
-```
-
-### 4) Access app
-
-- Home: `http://localhost:8080/pages/index.html`
-- Login: `http://localhost:8080/pages/admin-login.html`
-- Dashboard: `http://localhost:8080/pages/dashboard.html`
-
-### 5) Stop services
-
-```bash
-./stop_project.sh
-```
-
-## Environment variables
-
-Required (backend):
+2. Set required values in `.env.local`:
 - `SPRING_DATASOURCE_URL`
 - `SPRING_DATASOURCE_USERNAME`
 - `SPRING_DATASOURCE_PASSWORD`
 - `ML_API_URL`
 - `ML_HEALTH_URL`
 
-Optional:
-- `MAIL_SENDER`
-- `MAIL_PASSWORD`
-- `ML_AUTOTRAIN_ENABLED`
-- `ML_AUTOTRAIN_INTERVAL_MINUTES`
-- `ML_AUTOTRAIN_BATCH_SIZE`
-- `ML_AUTOTRAIN_MIN_RECORDS`
+3. Start app + ML:
 
-## Running with Docker
+```bash
+./run_project.sh
+```
 
-Build images:
+4. Open:
+- `http://localhost:8080/pages/index.html`
+- `http://localhost:8080/pages/admin-login.html`
+- `http://localhost:8080/pages/dashboard.html`
+
+5. Stop services:
+
+```bash
+./stop_project.sh
+```
+
+## Docker run
 
 ```bash
 docker build -t fraudshield-app .
 docker build -t fraudshield-ml ./ml
 ```
 
-Run ML service:
+Run ML:
 
 ```bash
 docker run --rm -p 5000:5000 fraudshield-ml
 ```
 
-Run app service:
+Run app:
 
 ```bash
 docker run --rm -p 8080:8080 \
@@ -174,17 +125,17 @@ docker run --rm -p 8080:8080 \
   fraudshield-app
 ```
 
-## Deploying on Render
+## Deploy on Render
 
-Use Blueprint deployment from `render.yaml`.
-
-Quick flow:
-1. Push repository to GitHub.
-2. In Render, choose **New + -> Blueprint**.
-3. Select this repository.
-4. Set app env vars (`SPRING_DATASOURCE_*`, `ML_API_URL`, `ML_HEALTH_URL`).
-
-Full detailed guide: `docs/guides/RENDER_DEPLOY_GUIDE.md`.
+1. Push repo to GitHub.
+2. In Render: **New + -> Blueprint**.
+3. Select this repo (uses `render.yaml`).
+4. Configure env vars on app service:
+- `SPRING_DATASOURCE_URL`
+- `SPRING_DATASOURCE_USERNAME`
+- `SPRING_DATASOURCE_PASSWORD`
+- `ML_API_URL`
+- `ML_HEALTH_URL`
 
 ## API overview
 
@@ -195,23 +146,13 @@ Full detailed guide: `docs/guides/RENDER_DEPLOY_GUIDE.md`.
 - System: `/system/*`
 - Audit: `/audit/*`
 
-For full flow and endpoint explanation, see `docs/architecture/PROJECT_DEEP_DIVE.md`.
+## Repository hygiene
 
-## Documentation
-
-- Full architecture and interview Q&A: `docs/architecture/PROJECT_DEEP_DIVE.md`
-- Render deployment guide: `docs/guides/RENDER_DEPLOY_GUIDE.md`
-- Run guide from zero: `docs/guides/RUN_GUIDE.md`
-
-## Repository hygiene (.gitignore)
-
-This repo excludes non-source and local-only artifacts, including:
-- env files (`.env`, `.env.local`, `.env.*` except `.env.example`)
-- build outputs (`target/`, `*.jar`, `*.class`)
-- logs/runtime outputs (`*.log`, `*.out`, `*.pid`)
-- local Python caches/venv
-- local node modules and Playwright artifacts
-- IDE/system files
+Ignored from Git by default:
+- env files (except `.env.example`)
+- build outputs (`target/`, jars, classes)
+- logs and runtime outputs
+- local caches/IDE files
 
 ## Team
 
@@ -226,5 +167,5 @@ This repo excludes non-source and local-only artifacts, including:
 
 ## License
 
-- Standard license file: `LICENSE`
-- Project-requested license text copy: `license.txt`
+- `LICENSE`
+- `license.txt`
