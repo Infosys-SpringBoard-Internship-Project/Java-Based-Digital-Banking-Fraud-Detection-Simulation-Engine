@@ -1,119 +1,155 @@
 # FraudShield
 
-AI-powered digital banking fraud detection and simulation engine with a Spring Boot application and a Flask-based ML inference service.
+FraudShield is a hybrid fraud-detection platform for digital banking that combines a Spring Boot backend, a Flask ML inference service, and a web dashboard for operations, simulation, and audit visibility.
 
-## Why this repository is now GitHub + Render ready
+## Table of contents
 
-- Deployment uses two Docker web services via `render.yaml`:
-  - `fraudshield-app` (Spring Boot)
-  - `fraudshield-ml` (Flask ML API)
-- Docker runtime now respects Render `PORT` for both services.
-- Repository now excludes generated artifacts, logs, cache folders, and local dependency folders from Git.
-- Docs are organized under `docs/`.
+- [Overview](#overview)
+- [Key features](#key-features)
+- [Architecture](#architecture)
+- [Project structure](#project-structure)
+- [Tech stack](#tech-stack)
+- [Getting started (local)](#getting-started-local)
+- [Environment variables](#environment-variables)
+- [Running with Docker](#running-with-docker)
+- [Deploying on Render](#deploying-on-render)
+- [API overview](#api-overview)
+- [Documentation](#documentation)
+- [Repository hygiene (.gitignore)](#repository-hygiene-gitignore)
+- [Team](#team)
+- [License](#license)
 
-## Tech stack
+## Overview
 
-- Backend: Java 17, Spring Boot 3
-- Database: PostgreSQL (Supabase)
-- ML service: Python 3, Flask, scikit-learn
-- Frontend: HTML/CSS/JS (served by Spring Boot static resources)
-- Deployment: Render (Docker)
+The platform evaluates transactions using two layers:
+- Rule engine (`R01` to `R14`) for deterministic, explainable checks.
+- ML model scoring for probabilistic fraud detection.
+
+It then stores results, raises alerts, supports CSV export, records audit/API logs, and provides dashboard analytics.
+
+## Key features
+
+- Hybrid fraud detection (rules + ML fallback/upgrade flow)
+- Role-based access (`SUPERADMIN`, `ADMIN`, `ANALYST`)
+- Manual validation + simulated traffic generation
+- Alerts and optional email notifications
+- Audit logs and API request logs
+- Transaction analytics and export endpoints
+- Render-ready Docker deployment for app + ML service
+
+## Architecture
+
+```text
+Dashboard (HTML/CSS/JS)
+        |
+        v
+Spring Boot API + Session/Auth + Rule Engine
+        |
+        +----> PostgreSQL (Supabase)
+        |
+        +----> Flask ML API (/health, /predict)
+```
 
 ## Project structure
 
 ```text
 fraud-project-source/
-├── src/                          # Spring Boot app source
+├── src/                                   # Spring Boot source
 │   └── main/
 │       ├── java/com/example/infosys_project/
 │       └── resources/
 │           ├── application.properties
 │           ├── db/migration/
 │           └── static/
-├── ml/                           # ML inference and training
+├── ml/                                    # ML service and training
 │   ├── api/flask_api.py
 │   ├── train_model.py
 │   ├── requirements.txt
 │   ├── models/
 │   ├── data/
 │   └── tests/
-├── e2e-tests/                    # Playwright tests
+├── e2e-tests/                             # Playwright tests
 ├── docs/
-│   ├── PROJECT_DEEP_DIVE.md
-│   ├── RENDER_DEPLOY_GUIDE.md
-│   ├── RUN_GUIDE.md
-│   └── TEST_RESULTS.md
-├── Dockerfile                    # Spring Boot image
-├── ml/Dockerfile                 # ML service image
-├── render.yaml                   # Render blueprint
-├── run_project.sh                # Local launcher (app + ML)
-├── stop_project.sh               # Local stop script
+│   ├── architecture/PROJECT_DEEP_DIVE.md
+│   └── guides/
+│       ├── RENDER_DEPLOY_GUIDE.md
+│       └── RUN_GUIDE.md
+├── Dockerfile                             # Spring Boot image
+├── ml/Dockerfile                          # ML image
+├── render.yaml                            # Render blueprint (2 services)
+├── run_project.sh                         # Local launcher (app + ML)
+├── stop_project.sh                        # Local stop script
 ├── .env.example
 ├── .gitignore
+├── LICENSE
 ├── license.txt
 └── README.md
 ```
 
-## Files/folders you should NOT upload to GitHub
+## Tech stack
 
-These are already handled by `.gitignore`:
+- Backend: Java 17, Spring Boot 3
+- Database: PostgreSQL (Supabase)
+- ML service: Python 3, Flask, scikit-learn
+- Frontend: HTML/CSS/JS static pages
+- E2E tests: Playwright
+- Deployment: Docker + Render
 
-- Secrets/env: `.env`, `.env.local`, `.env.*` (except `.env.example`)
-- Build output: `target/`, `*.jar`, `*.class`
-- Logs/runtime files: `*.log`, `*.out`, `*.pid`, `run.out`
-- Python local cache/venv: `.venv/`, `__pycache__/`, `.pytest_cache/`
-- E2E local dependencies: `e2e-tests/node_modules/`, Playwright report folders
-- IDE/system files: `.idea/`, `.vscode/`, `.settings/`, `.classpath`, `.project`
+## Getting started (local)
 
-## What you must update before running locally
+### 1) Prerequisites
 
-1. Copy env template:
+- Java 17+
+- Maven 3.8+ (or `mvnw`)
+- Python 3.10+
+- PostgreSQL/Supabase credentials
+
+### 2) Configure environment
 
 ```bash
 cp .env.example .env.local
 ```
 
-2. Update these required values in `.env.local`:
-- `SPRING_DATASOURCE_URL`
-- `SPRING_DATASOURCE_USERNAME`
-- `SPRING_DATASOURCE_PASSWORD`
-- `ML_API_URL` (local default: `http://127.0.0.1:5000/predict`)
-- `ML_HEALTH_URL` (local default: `http://127.0.0.1:5000/health`)
+Update `.env.local` with real values.
 
-3. Optional but recommended:
-- `MAIL_SENDER`, `MAIL_PASSWORD`
-- `ML_AUTOTRAIN_ENABLED` (set `false` if you do not want periodic retraining locally)
-
-## Run locally (current setup)
-
-### Prerequisites
-
-- Java 17+
-- Maven 3.8+ (or working `mvnw` wrapper)
-- Python 3.10+
-- Supabase/Postgres credentials
-
-### Start app + ML together
+### 3) Start full stack
 
 ```bash
 ./run_project.sh
 ```
 
-### Stop all local services
-
-```bash
-./stop_project.sh
-```
-
-### Local URLs
+### 4) Access app
 
 - Home: `http://localhost:8080/pages/index.html`
 - Login: `http://localhost:8080/pages/admin-login.html`
 - Dashboard: `http://localhost:8080/pages/dashboard.html`
 
-## Run locally with Docker (same model as Render)
+### 5) Stop services
 
-From project root:
+```bash
+./stop_project.sh
+```
+
+## Environment variables
+
+Required (backend):
+- `SPRING_DATASOURCE_URL`
+- `SPRING_DATASOURCE_USERNAME`
+- `SPRING_DATASOURCE_PASSWORD`
+- `ML_API_URL`
+- `ML_HEALTH_URL`
+
+Optional:
+- `MAIL_SENDER`
+- `MAIL_PASSWORD`
+- `ML_AUTOTRAIN_ENABLED`
+- `ML_AUTOTRAIN_INTERVAL_MINUTES`
+- `ML_AUTOTRAIN_BATCH_SIZE`
+- `ML_AUTOTRAIN_MIN_RECORDS`
+
+## Running with Docker
+
+Build images:
 
 ```bash
 docker build -t fraudshield-app .
@@ -126,7 +162,7 @@ Run ML service:
 docker run --rm -p 5000:5000 fraudshield-ml
 ```
 
-Run app service (pass env vars):
+Run app service:
 
 ```bash
 docker run --rm -p 8080:8080 \
@@ -138,28 +174,19 @@ docker run --rm -p 8080:8080 \
   fraudshield-app
 ```
 
-## Deploy on Render
+## Deploying on Render
 
-### Recommended: Blueprint deploy
+Use Blueprint deployment from `render.yaml`.
 
+Quick flow:
 1. Push repository to GitHub.
-2. In Render: **New + -> Blueprint**.
-3. Select this repository; Render reads `render.yaml` and creates both services.
-4. Set required env vars on `fraudshield-app`:
-   - `SPRING_DATASOURCE_URL`
-   - `SPRING_DATASOURCE_USERNAME`
-   - `SPRING_DATASOURCE_PASSWORD`
-   - `ML_API_URL` = `https://<your-ml-service>.onrender.com/predict`
-   - `ML_HEALTH_URL` = `https://<your-ml-service>.onrender.com/health`
+2. In Render, choose **New + -> Blueprint**.
+3. Select this repository.
+4. Set app env vars (`SPRING_DATASOURCE_*`, `ML_API_URL`, `ML_HEALTH_URL`).
 
-## Detailed docs
+Full detailed guide: `docs/guides/RENDER_DEPLOY_GUIDE.md`.
 
-- Project explanation and interview Q&A: `docs/PROJECT_DEEP_DIVE.md`
-- Render step-by-step deployment: `docs/RENDER_DEPLOY_GUIDE.md`
-- Run from zero to full local setup: `docs/RUN_GUIDE.md`
-- E2E test notes: `docs/TEST_RESULTS.md`
-
-## API highlights
+## API overview
 
 - Auth: `/auth/*`
 - Transactions: `/transaction/*`
@@ -168,26 +195,23 @@ docker run --rm -p 8080:8080 \
 - System: `/system/*`
 - Audit: `/audit/*`
 
-## Security notes
+For full flow and endpoint explanation, see `docs/architecture/PROJECT_DEEP_DIVE.md`.
 
-- Never commit `.env` or real credentials.
-- Rotate secrets immediately if accidentally exposed.
-- Keep secret API keys server-side only.
+## Documentation
 
-## What a strong GitHub project README should include
+- Full architecture and interview Q&A: `docs/architecture/PROJECT_DEEP_DIVE.md`
+- Render deployment guide: `docs/guides/RENDER_DEPLOY_GUIDE.md`
+- Run guide from zero: `docs/guides/RUN_GUIDE.md`
 
-- Project name and one-line value proposition
-- Problem statement and solution overview
-- Feature list
-- Tech stack and versions
-- Folder structure
-- Local setup and run instructions
-- Environment variable guide
-- Deployment guide
-- API usage examples/endpoints
-- Security practices
-- Team/contributors
-- License
+## Repository hygiene (.gitignore)
+
+This repo excludes non-source and local-only artifacts, including:
+- env files (`.env`, `.env.local`, `.env.*` except `.env.example`)
+- build outputs (`target/`, `*.jar`, `*.class`)
+- logs/runtime outputs (`*.log`, `*.out`, `*.pid`)
+- local Python caches/venv
+- local node modules and Playwright artifacts
+- IDE/system files
 
 ## Team
 
@@ -202,4 +226,5 @@ docker run --rm -p 8080:8080 \
 
 ## License
 
-License text is available in `license.txt`.
+- Standard license file: `LICENSE`
+- Project-requested license text copy: `license.txt`
