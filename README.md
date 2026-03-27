@@ -123,7 +123,6 @@ PostgreSQL (Supabase)      Flask ML API (/health, /predict)
 ├── .gitignore
 ├── pom.xml
 ├── LICENSE
-└── license.txt
 ```
 
 ## Getting Started (Local)
