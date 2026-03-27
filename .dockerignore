@@ -1,0 +1,31 @@
+# Git and IDE
+.git
+.gitignore
+.idea
+.vscode
+.settings
+*.iml
+
+# Environment files
+.env
+.env.local
+.env.*
+
+# Build and runtime artifacts
+target
+*.log
+*.out
+run.out
+app.log
+ml.log
+ml/ml_api.log
+
+# Python local artifacts
+ml/.venv
+ml/.pytest_cache
+ml/__pycache__
+
+# E2E dependencies/artifacts not needed for app image
+e2e-tests/node_modules
+e2e-tests/playwright-report
+e2e-tests/test-results

@@ -1,0 +1,42 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Build outputs
+/target/
+*.class
+*.jar
+
+# Runtime logs and PID files
+*.log
+*.out
+*.pid
+run.out
+app.log
+ml.log
+ml/ml_api.log
+
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+ml/__pycache__/
+ml/.pytest_cache/
+ml/.venv/
+
+# Node dependencies and test artifacts
+e2e-tests/node_modules/
+e2e-tests/playwright-report/
+e2e-tests/test-results/
+
+# IDE and OS files
+.idea/
+.vscode/
+.settings/
+.project
+.classpath
+*.iml
+.DS_Store
+Thumbs.db

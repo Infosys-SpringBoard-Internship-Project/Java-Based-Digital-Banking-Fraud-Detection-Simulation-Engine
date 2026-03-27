@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FraudShield — Simulation Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Barlow+Condensed:wght@300;400;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles/dashboard/dashboard.css">
+</head>
+<body>
+<nav class="nav">
+  <a class="nav-logo" href="/pages/index.html" aria-label="Go to home page">
+    <div class="logo-icon"></div>
+    <span class="logo-text">Fraud<span>Shield</span></span>
+  </a>
+  <div class="nav-status" id="system-status">
+    <div class="status-dot"></div>
+    <span id="system-status-text">CHECKING...</span>
+  </div>
+  <div style="position:relative;" id="bell-container">
+    <div class="bell-wrap" onclick="toggleNotifPanel()">
+      <span class="bell-icon">🔔</span>
+      <span class="bell-badge" id="bell-badge">0</span>
+    </div>
+    <div class="notif-panel" id="notif-panel">
+      <div class="notif-panel-header">
+        <div class="notif-panel-title"><div class="notif-panel-title-dot"></div>ALERTS</div>
+        <button class="notif-mark-all" onclick="markAllRead()">MARK ALL READ</button>
+      </div>
+      <div class="notif-list" id="notif-list"><div class="notif-empty">No alerts yet</div></div>
+      <div class="notif-panel-footer"><a href="#" onclick="switchToTransactions()">VIEW ALL TRANSACTIONS →</a></div>
+    </div>
+  </div>
+  <div class="nav-tabs">
+    <div class="nav-tab" data-tab="dashboard"><span>Dashboard</span></div>
+    <div class="nav-tab" data-tab="transactions"><span>Transactions</span></div>
+    <div class="nav-tab" data-tab="manual"><span>Manual Input</span></div>
+    <div class="nav-tab" data-tab="analytics"><span>Analytics</span></div>
+  </div>
+  <div class="nav-admin">
+    <div class="admin-info">
+      <span class="admin-name" id="admin-name">LOADING...</span>
+      <span class="admin-email" id="admin-email"></span>
+      <span class="admin-session" id="admin-session"></span>
+    </div>
+    <button class="btn-logout" onclick="logout()">LOGOUT</button>
+  </div>
+</nav>
+<div class="main">
+  <div class="section active" id="tab-simulation">
+    <div class="page-header">
+      <div>
+        <div class="page-title">SIMULATION CONTROL</div>
+        <div class="page-subtitle">// START, TUNE, AND STOP FRAUD SCENARIO RUNS</div>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-primary" type="button" onclick="loadSimulationStatus()">↺ REFRESH</button>
+      </div>
+    </div>
+
+    <div class="grid-65-35 simulation-grid">
+      <div class="panel simulation-panel">
+        <div class="panel-header"><div class="panel-title"><div class="panel-title-dot"></div> SCENARIO CONFIG</div></div>
+        <div class="panel-body">
+          <form id="simulation-config-form">
+            <div class="form-grid advanced-filter-grid">
+              <div class="form-group">
+                <label class="form-label">Volume</label>
+                <input class="form-input" id="simulation-volume" type="number" min="1" max="1000" value="120">
+              </div>
+              <div class="form-group">
+                <label class="form-label">High + Critical %</label>
+                <input class="form-input" id="simulation-fraud-percentage" type="number" min="0" max="100" value="13">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Normal %</label>
+                <input class="form-input" id="simulation-normal-percentage" type="number" min="0" max="100" value="75">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Medium %</label>
+                <input class="form-input" id="simulation-medium-percentage" type="number" min="0" max="100" value="12">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Mode</label>
+                <select class="form-select" id="simulation-mode">
+                  <option value="INSTANT">INSTANT</option>
+                  <option value="GRADUAL">GRADUAL</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Amount Min</label>
+                <input class="form-input" id="simulation-amount-min" type="number" min="0" value="500">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Amount Max</label>
+                <input class="form-input" id="simulation-amount-max" type="number" min="1" value="100000">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Duration (min)</label>
+                <input class="form-input" id="simulation-duration" type="number" min="1" max="60" value="2">
+              </div>
+            </div>
+
+            <div class="simulation-scenario-grid">
+              <label class="scenario-chip"><input type="checkbox" name="simulation-scenario" value="HIGH_AMOUNT" checked> HIGH AMOUNT</label>
+              <label class="scenario-chip"><input type="checkbox" name="simulation-scenario" value="VPN" checked> RAPID VPN</label>
+              <label class="scenario-chip"><input type="checkbox" name="simulation-scenario" value="TOR" checked> TOR / INTERNATIONAL</label>
+              <label class="scenario-chip"><input type="checkbox" name="simulation-scenario" value="CRYPTO"> CRYPTO / GAMBLING</label>
+              <label class="scenario-chip"><input type="checkbox" name="simulation-scenario" value="AMOUNT_SPIKE"> AMOUNT SPIKE</label>
+              <label class="scenario-chip"><input type="checkbox" name="simulation-scenario" value="PROXY"> PROXY / HIGH VOLUME</label>
+              <label class="scenario-chip"><input type="checkbox" name="simulation-scenario" value="MAX_CHAOS"> MAX CHAOS</label>
+            </div>
+
+            <div class="advanced-filter-actions" style="margin-top:16px;">
+              <button class="btn btn-primary" id="simulation-start-btn" type="submit" data-requires-write="true">START SIMULATION</button>
+              <button class="btn btn-danger" id="simulation-stop-btn" type="button" onclick="stopSimulation()" style="display:none;" data-requires-write="true">STOP SIMULATION</button>
+              <span class="advanced-filter-summary">Admins can run mixed normal + fraud simulations with live telemetry.</span>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="panel simulation-panel">
+        <div class="panel-header"><div class="panel-title"><div class="panel-title-dot"></div> RUN STATUS</div></div>
+        <div class="panel-body">
+          <div class="stats-grid stats-grid-users simulation-status-grid" style="margin-bottom:16px;">
+            <div class="stat-card cyan"><div class="stat-label">Status</div><div class="stat-value" id="simulation-status-text">IDLE</div></div>
+            <div class="stat-card orange"><div class="stat-label">Progress</div><div class="stat-value" id="simulation-progress-text">0 / 0</div></div>
+            <div class="stat-card red"><div class="stat-label">Fraud</div><div class="stat-value" id="simulation-fraud-count">0</div></div>
+          </div>
+          <div class="advanced-filter-summary" style="margin-bottom:10px;">Normal generated: <span id="simulation-normal-count">0</span></div>
+          <div class="form-label" style="margin-bottom:8px;">AVERAGE RISK</div>
+          <div class="score-gauge" style="margin-bottom:12px;">
+            <div class="gauge-track"><div class="gauge-fill" id="simulation-progress-fill" style="width:0%; background:linear-gradient(90deg, var(--accent-cyan), var(--red));"></div></div>
+            <span id="simulation-average-risk" class="score-val">0</span>
+          </div>
+          <div class="advanced-filter-summary">Started: <span id="simulation-started-at">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2 analytics-grid-top simulation-bottom-grid">
+      <div class="panel simulation-panel">
+        <div class="panel-header"><div class="panel-title"><div class="panel-title-dot"></div> LIVE EVENT LOG</div></div>
+        <div class="panel-body simulation-log" id="simulation-events">
+          <div class="empty-state"><div class="empty-text">No simulation events yet</div></div>
+        </div>
+      </div>
+      <div class="panel simulation-panel">
+        <div class="panel-header"><div class="panel-title"><div class="panel-title-dot"></div> RECENT GENERATED TXNS</div></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>NAME</th><th>AMOUNT</th><th>RISK</th><th>STATUS</th></tr>
+            </thead>
+            <tbody id="simulation-recent-tbody">
+              <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-mono);">No simulated transactions yet</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast-container" id="toasts"></div>
+<div class="auth-checking" id="auth-overlay">VERIFYING SESSION...</div>
+<script src="/scripts/dashboard/dashboard.js"></script>
+</body>
+</html>
