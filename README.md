@@ -282,4 +282,3 @@ Important:
 ## License
 
 - `LICENSE`
-- `license.txt`
