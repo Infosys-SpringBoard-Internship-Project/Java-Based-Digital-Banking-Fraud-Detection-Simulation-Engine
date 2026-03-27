@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: fraudshield-ml
+    env: docker
+    rootDir: ./ml
+    dockerfilePath: ./Dockerfile
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /health
+
+  - type: web
+    name: fraudshield-app
+    env: docker
+    rootDir: .
+    dockerfilePath: ./Dockerfile
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: ML_AUTOTRAIN_ENABLED
+        value: "false"
+    healthCheckPath: /pages/index.html
