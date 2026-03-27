@@ -36,7 +36,7 @@ public class HealthMonitorService {
     private final JdbcTemplate jdbcTemplate;
     private final JavaMailSender mailSender;
 
-    @Value("${ml.autotrain.interval.minutes:20}")
+    @Value("${ml.autotrain.interval.minutes:2880}")
     private long mlAutoTrainIntervalMinutes;
 
     @Value("${ml.autotrain.min.records:120}")
