@@ -2,8 +2,8 @@ name: Keep Render Services Alive
 
 on:
   schedule:
-    # Run every 5 minutes to avoid Render free-tier suspension
-    - cron: '*/5 * * * *'
+    # Run every 1 minute to avoid Render free-tier suspension
+    - cron: '* * * * *'
   workflow_dispatch:
 
 jobs:
@@ -23,4 +23,4 @@ jobs:
           echo "App endpoint HTTP: ${code}"
 
       - name: Done
-        run: echo "Keep-alive run completed at $(date -u)"
+        run: echo "Primary keep-alive run completed at $(date -u)"

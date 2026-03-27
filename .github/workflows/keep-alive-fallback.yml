@@ -1,0 +1,26 @@
+name: Keep Render Services Alive (Fallback)
+
+on:
+  schedule:
+    # Fallback workflow, also every 1 minute
+    - cron: '* * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping-services-fallback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Ping app index page (fallback)
+        run: |
+          code=$(curl -sS -L -o /dev/null -w "%{http_code}" "https://fraudshield-app.onrender.com/pages/index.html")
+          echo "Fallback app endpoint HTTP: ${code}"
+
+      - name: Ping ML health endpoint (fallback)
+        run: |
+          code=$(curl -sS -L -o /dev/null -w "%{http_code}" "https://fraudshield-ml-pwd9.onrender.com/health")
+          echo "Fallback ML endpoint HTTP: ${code}"
+
+      - name: Done
+        run: echo "Fallback keep-alive run completed at $(date -u)"
