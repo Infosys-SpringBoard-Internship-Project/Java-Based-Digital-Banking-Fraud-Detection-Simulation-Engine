@@ -54,7 +54,7 @@ public class MailConfig {
         mailSender.setHost(trim(host));
         mailSender.setPort(port);
         mailSender.setUsername(trim(username));
-        mailSender.setPassword(trim(password));
+        mailSender.setPassword(stripWhitespace(password));
 
         Properties props = mailSender.getJavaMailProperties();
         props.put("mail.transport.protocol", "smtp");
@@ -62,6 +62,8 @@ public class MailConfig {
         props.put("mail.smtp.starttls.enable", String.valueOf(startTlsEnable));
         props.put("mail.smtp.starttls.required", String.valueOf(startTlsRequired));
         props.put("mail.smtp.ssl.trust", trim(sslTrust));
+        props.put("mail.smtp.ssl.protocols", "TLSv1.2");
+        props.put("mail.smtp.auth.mechanisms", "LOGIN PLAIN");
         props.put("mail.smtp.connectiontimeout", String.valueOf(connectionTimeout));
         props.put("mail.smtp.timeout", String.valueOf(timeout));
         props.put("mail.smtp.writetimeout", String.valueOf(writeTimeout));
@@ -86,5 +88,12 @@ public class MailConfig {
             return "***";
         }
         return value.charAt(0) + "***" + value.substring(at - 1);
+    }
+
+    private String stripWhitespace(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replaceAll("\\s+", "");
     }
 }
