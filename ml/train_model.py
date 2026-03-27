@@ -2,7 +2,7 @@
 """Train fraud and rule models from transaction CSV data.
 
 Usage:
-    python train_model.py --input ml/data/autotrain_transactions.csv --models-dir ml/models
+    python train_model.py --input ml/data/transactions.csv --models-dir ml/models
 """
 
 from __future__ import annotations
