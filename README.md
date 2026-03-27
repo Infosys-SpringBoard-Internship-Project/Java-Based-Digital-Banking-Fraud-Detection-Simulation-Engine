@@ -1,56 +1,47 @@
 # FraudShield
 
-AI-powered digital banking fraud detection and simulation engine built with Spring Boot (backend), Flask (ML inference), and PostgreSQL.
+AI-powered digital banking fraud detection and simulation engine built with Spring Boot, Flask, and PostgreSQL.
 
-## Badges
-
-![Java](https://img.shields.io/badge/Java-17-blue)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-green)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14%2B-blue)
-![Python](https://img.shields.io/badge/Python-3.x-yellow)
-![Flask](https://img.shields.io/badge/Flask-API-black)
-![License](https://img.shields.io/badge/License-MIT-green)
-
-## Table of contents
-
-- [Overview](#overview)
-- [Live Links](#live-links)
-- [Key Features](#key-features)
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Local Setup](#local-setup)
-- [Environment Variables](#environment-variables)
-- [Run with Docker](#run-with-docker)
-- [Render Deployment](#render-deployment)
-- [API Modules](#api-modules)
-- [Render Troubleshooting](#render-troubleshooting)
-- [Team](#team)
-- [License](#license)
-
-## Overview
-
-FraudShield evaluates banking transactions using a hybrid approach:
-
-- Rule engine (`R01` to `R14`) for deterministic risk checks
-- ML inference service for fraud probability scoring
-
-The platform provides dashboard monitoring, alerting, auditing, simulation, and export workflows for fraud operations.
-
-## Live Links
+## Live Demo
 
 - App: `https://fraudshield-app.onrender.com`
 - ML Service: `https://fraudshield-ml-pwd9.onrender.com`
 - ML Health: `https://fraudshield-ml-pwd9.onrender.com/health`
 
-## Key Features
+## Table of Contents
 
-- Hybrid fraud detection (rules + ML)
+- [Overview](#overview)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [Environment Variables](#environment-variables)
+- [Run with Docker](#run-with-docker)
+- [Deploy on Render](#deploy-on-render)
+- [API Modules](#api-modules)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [Team](#team)
+- [License](#license)
+
+## Overview
+
+FraudShield evaluates transactions with a hybrid approach:
+
+- Rule engine (`R01` to `R14`) for deterministic fraud checks
+- ML inference API for fraud probability scoring
+
+The platform supports operations teams with alerting, dashboards, audit logs, simulation workflows, and transaction exports.
+
+## Features
+
+- Hybrid fraud detection (rules + ML scoring)
 - Role-based access (`SUPERADMIN`, `ADMIN`, `ANALYST`)
 - Manual and simulated transaction validation
-- Real-time alerting and fraud log views
-- Audit trail and CSV exports
-- Deploy-ready via Docker + Render (`render.yaml`)
+- Fraud alerts and risk-level classification
+- Dashboard analytics and audit trail
+- Deploy-ready setup using Docker and Render
 
 ## Architecture
 
@@ -101,7 +92,16 @@ PostgreSQL (Supabase)      Flask ML API (/health, /predict)
 └── license.txt
 ```
 
-## Local Setup
+## Getting Started
+
+### Prerequisites
+
+- Java 17+
+- Maven 3.8+
+- Python 3.10+
+- Docker (optional)
+
+### Local Setup
 
 1. Copy environment template:
 
@@ -109,15 +109,9 @@ PostgreSQL (Supabase)      Flask ML API (/health, /predict)
 cp .env.example .env.local
 ```
 
-2. Update required values in `.env.local`:
+2. Update required values in `.env.local`.
 
-- `SPRING_DATASOURCE_URL`
-- `SPRING_DATASOURCE_USERNAME`
-- `SPRING_DATASOURCE_PASSWORD`
-- `ML_API_URL`
-- `ML_HEALTH_URL`
-
-3. Start app + ML service:
+3. Start the application and ML service:
 
 ```bash
 ./run_project.sh
@@ -137,7 +131,7 @@ cp .env.example .env.local
 
 ## Environment Variables
 
-Required:
+### Required
 
 - `SPRING_DATASOURCE_URL`
 - `SPRING_DATASOURCE_USERNAME`
@@ -145,7 +139,7 @@ Required:
 - `ML_API_URL`
 - `ML_HEALTH_URL`
 
-Optional:
+### Optional
 
 - `MAIL_SENDER`
 - `MAIL_PASSWORD`
@@ -153,7 +147,7 @@ Optional:
 Notes:
 
 - ML auto-train is removed.
-- The app uses existing model artifacts from `ml/models/`.
+- The application uses existing model artifacts from `ml/models/`.
 
 ## Run with Docker
 
@@ -182,19 +176,13 @@ docker run --rm -p 8080:8080 \
   fraudshield-app
 ```
 
-## Render Deployment
+## Deploy on Render
 
-1. Push this repo to GitHub.
-2. In Render: **New + -> Blueprint**.
-3. Select this repository (reads `render.yaml`).
-4. Set environment variables on app service:
-   - `SPRING_DATASOURCE_URL`
-   - `SPRING_DATASOURCE_USERNAME`
-   - `SPRING_DATASOURCE_PASSWORD`
-   - `ML_API_URL`
-   - `ML_HEALTH_URL`
+1. Push repository to GitHub.
+2. In Render, create a **Blueprint** deployment using `render.yaml`.
+3. Configure app environment variables.
 
-Recommended values for Supabase pooler + Render:
+Recommended configuration:
 
 ```env
 SPRING_DATASOURCE_URL=jdbc:postgresql://aws-1-ap-south-1.pooler.supabase.com:6543/postgres?sslmode=require
@@ -205,8 +193,9 @@ ML_HEALTH_URL=https://fraudshield-ml-pwd9.onrender.com/health
 ```
 
 Important:
+
 - Always include `https://` in `ML_API_URL` and `ML_HEALTH_URL`.
-- Keep username/password as separate env vars (do not embed in JDBC URL).
+- Keep username/password separate; do not embed credentials inside `SPRING_DATASOURCE_URL`.
 
 ## API Modules
 
@@ -217,12 +206,18 @@ Important:
 - System: `/system/*`
 - Audit: `/audit/*`
 
-## Render Troubleshooting
+## Troubleshooting
 
-- `ML: DOWN` while ML health URL works: verify app env has full URL with `https://` and redeploy app.
+- `ML: DOWN` while health endpoint is up: verify ML URLs in app env include protocol and redeploy app.
 - `Unable to commit against JDBC Connection`: recheck Supabase pooler host/port/user/password.
-- `Authentication error ... no user`: confirm `SPRING_DATASOURCE_USERNAME` is exactly `postgres.<project-ref>` for pooler.
-- App starts then fails during DB init: verify `SPRING_DATASOURCE_URL` uses the pooler endpoint and `sslmode=require`.
+- `Authentication error ... no user`: ensure `SPRING_DATASOURCE_USERNAME` matches pooler format (`postgres.<project-ref>`).
+- DB init failures: confirm `sslmode=require` in datasource URL.
+
+## Contributing
+
+1. Create a feature branch.
+2. Commit focused changes with clear messages.
+3. Open a pull request to `develop` or `main` based on repo workflow.
 
 ## Team
 
@@ -235,7 +230,7 @@ Important:
 | Team Member 5 | [@username5](https://github.com/username5) |
 | Team Member 6 | [@username6](https://github.com/username6) |
 
-> Replace `username1..username6` with the actual GitHub usernames.
+> Replace `username1..username6` with actual GitHub usernames.
 
 ## License
 
