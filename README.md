@@ -194,6 +194,13 @@ docker run --rm -p 8080:8080 \
 - System: `/system/*`
 - Audit: `/audit/*`
 
+
+## Documentation
+
+- Render deployment: `docs/guides/RENDER_DEPLOY_GUIDE.md`
+- Local run guide: `docs/guides/RUN_GUIDE.md`
+- Project architecture and flow: `docs/architecture/PROJECT_DEEP_DIVE.md`
+
 ## Team
 
 | Name | GitHub |
