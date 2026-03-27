@@ -9,11 +9,30 @@ AI-powered digital banking fraud detection and simulation platform built with Sp
 ![Flask](https://img.shields.io/badge/Flask-API-black)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-## Live Links
+## 🌐 Live Demo
 
-- App: `https://fraudshield-app.onrender.com`
-- ML Service: `https://fraudshield-ml-pwd9.onrender.com`
-- ML Health: `https://fraudshield-ml-pwd9.onrender.com/health`
+| Service | URL | Description |
+|---------|-----|-------------|
+| **Main Application** | [fraudshield-app.onrender.com](https://fraudshield-app.onrender.com) | Frontend dashboard and Spring Boot API |
+| **ML Service** | [fraudshield-ml-pwd9.onrender.com](https://fraudshield-ml-pwd9.onrender.com) | Flask ML inference endpoint |
+| **ML Health Check** | [fraudshield-ml-pwd9.onrender.com/health](https://fraudshield-ml-pwd9.onrender.com/health) | ML service health status |
+
+## 🚀 Quick Start TL;DR
+
+```bash
+# 1. Clone and configure
+git clone <repo-url>
+cd fraud-project-source
+cp .env.example .env.local
+
+# 2. Update .env.local with your database credentials
+
+# 3. Run everything
+./run_project.sh
+
+# 4. Open dashboard
+open http://localhost:8080/pages/dashboard.html
+```
 
 ## Table of Contents
 
@@ -28,7 +47,8 @@ AI-powered digital banking fraud detection and simulation platform built with Sp
 - [Environment Variables](#environment-variables)
 - [Run with Docker](#run-with-docker)
 - [Deploy on Render](#deploy-on-render)
-- [API Modules](#api-modules)
+- [API Reference](#api-reference)
+- [Testing](#testing)
 - [Troubleshooting](#troubleshooting)
 - [Security Notes](#security-notes)
 - [Contributing](#contributing)
@@ -67,26 +87,60 @@ FraudShield uses a hybrid pipeline:
 
 This keeps detection both practical (explainable rules) and adaptive (ML-assisted scoring).
 
-## Key Features
+## ✨ Key Features
 
-- Hybrid fraud detection (rules + ML)
-- Role-based access (`SUPERADMIN`, `ADMIN`, `ANALYST`)
-- Manual and simulated transaction validation
-- Risk-level based alerting and fraud reasons
-- System health visibility (DB/ML/email/API metrics)
-- Audit logs and CSV exports for compliance workflows
-- Production-ready deployment using Docker + Render blueprint
+### Detection Engine
+- **Hybrid fraud detection** - Combines rule-based logic (R01-R14) with ML probability scoring
+- **Real-time validation** - Sub-second transaction processing with immediate risk assessment
+- **Explainable results** - Each flagged transaction includes specific rule violations and risk reasons
 
-## Architecture
+### Access Control
+- **Role-based access** - Three-tier authorization: SUPERADMIN, ADMIN, ANALYST
+- **Data masking** - Automatic PII protection based on user role
+- **Audit logging** - Comprehensive activity tracking for compliance
+
+### Operations & Analytics
+- **Dashboard analytics** - Visual fraud trends, transaction statistics, and system health
+- **Risk-level alerting** - Configurable email notifications for high-risk transactions
+- **CSV exports** - Transaction and audit log downloads for investigation
+- **Fraud simulation** - Generate synthetic fraud scenarios for testing and training
+
+### DevOps Ready
+- **Docker containerization** - Multi-stage builds for both Java and Python services
+- **Health monitoring** - Dedicated endpoints for DB, ML, email, and API status
+- **Production deployment** - Render blueprint for zero-config cloud deployment
+
+## 🏗️ Architecture
 
 ```text
-Frontend Dashboard (HTML/CSS/JS)
-          |
-          v
-Spring Boot API (Auth + Rules + Services)
-      |                        |
-      v                        v
-PostgreSQL (Supabase)      Flask ML API (/health, /predict)
+┌─────────────────────────────────────────────────────────────┐
+│                    Frontend Dashboard                        │
+│              (HTML/CSS/JS + Chart.js + DataTables)          │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         v
+┌─────────────────────────────────────────────────────────────┐
+│              Spring Boot API (Port 8080)                     │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │  Auth        │  │  Transaction │  │  Simulation  │     │
+│  │  Controller  │  │  Controller  │  │  Controller  │     │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘     │
+│         │                  │                  │              │
+│  ┌──────v──────────────────v──────────────────v────────┐   │
+│  │           Fraud Detection Service                    │   │
+│  │  (Rules Engine + ML Integration + Alert Manager)    │   │
+│  └──────┬────────────────────────────────────┬─────────┘   │
+└─────────┼────────────────────────────────────┼─────────────┘
+          │                                     │
+          v                                     v
+┌─────────────────────┐              ┌─────────────────────┐
+│   PostgreSQL DB     │              │  Flask ML Service   │
+│  (Supabase Pooler)  │              │    (Port 5000)      │
+│                     │              │                     │
+│  • Users & Auth     │              │  • /predict         │
+│  • Transactions     │              │  • /health          │
+│  • Alerts & Logs    │              │  • scikit-learn     │
+└─────────────────────┘              └─────────────────────┘
 ```
 
 ## Tech Stack
@@ -178,14 +232,16 @@ Notes:
 - Application uses existing model artifacts under `ml/models/`.
 - Always include protocol (`https://`) in ML URLs.
 
-## Run with Docker
+## 🐳 Run with Docker
 
-Build images:
+### Build Images
 
 ```bash
 docker build -t fraudshield-app .
 docker build -t fraudshield-ml ./ml
 ```
+
+### Run Services Individually
 
 Run ML service:
 
@@ -203,6 +259,45 @@ docker run --rm -p 8080:8080 \
   -e ML_API_URL="http://host.docker.internal:5000/predict" \
   -e ML_HEALTH_URL="http://host.docker.internal:5000/health" \
   fraudshield-app
+```
+
+### Docker Compose (Recommended)
+
+Create `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  ml-service:
+    build: ./ml
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  app-service:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/postgres?sslmode=require
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
+      - ML_API_URL=http://ml-service:5000/predict
+      - ML_HEALTH_URL=http://ml-service:5000/health
+    depends_on:
+      ml-service:
+        condition: service_healthy
+```
+
+Run with:
+
+```bash
+docker-compose up -d
 ```
 
 ## Deploy on Render
@@ -227,14 +322,129 @@ Important:
 - Keep DB username/password in their dedicated env variables.
 - If ML URL changes, update both `ML_API_URL` and `ML_HEALTH_URL`.
 
-## API Modules
+## 🔌 API Reference
 
-- Auth: `/auth/*`
-- Transactions: `/transaction/*`
-- Alerts: `/alerts/*`
-- Simulation: `/simulation/*`
-- System: `/system/*`
-- Audit: `/audit/*`
+Base URL: `https://fraudshield-app.onrender.com` (production) or `http://localhost:8080` (local)
+
+### Authentication
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `POST` | `/auth/login` | Authenticate user and get token | No |
+| `POST` | `/auth/logout` | Invalidate session token | Yes |
+| `GET` | `/auth/me` | Get current user profile | Yes |
+| `POST` | `/auth/register` | Register new user (SUPERADMIN only) | Yes |
+| `GET` | `/auth/users` | List all users | Yes (ADMIN+) |
+
+### Transactions
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `POST` | `/transaction/validate` | Submit transaction for fraud detection | Optional |
+| `GET` | `/transaction/all` | Get all transactions (with role-based masking) | Optional |
+| `GET` | `/transaction/search` | Search transactions with filters | Optional |
+| `GET` | `/transaction/{id}` | Get transaction by ID | Optional |
+| `GET` | `/transaction/frauds` | Get all fraudulent transactions | Optional |
+| `GET` | `/transaction/summary` | Get fraud statistics summary | Optional |
+| `GET` | `/transaction/generate` | Generate random transaction (no save) | No |
+| `GET` | `/transaction/autoValidate` | Generate + validate + save transaction | No |
+
+### Alerts
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `GET` | `/alerts` | Get all alerts for current user | Yes |
+| `GET` | `/alerts/unread` | Get unread alerts count | Yes |
+| `PUT` | `/alerts/{id}/read` | Mark alert as read | Yes |
+| `PUT` | `/alerts/read-all` | Mark all alerts as read | Yes |
+
+### Simulation
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `POST` | `/simulation/start` | Start fraud simulation | Yes (ADMIN+) |
+| `POST` | `/simulation/stop` | Stop running simulation | Yes (ADMIN+) |
+| `GET` | `/simulation/status` | Get simulation status | Yes |
+
+### System Health
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `GET` | `/system/health` | Get system health status (DB, ML, email) | No |
+| `GET` | `/system/overview` | Get system metrics overview | Yes (ADMIN+) |
+| `GET` | `/system/api-logs` | Get recent API request logs | Yes (ADMIN+) |
+
+### Audit
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `GET` | `/audit/logs` | Get audit logs with filters | Yes (ADMIN+) |
+| `GET` | `/audit/export-csv` | Export audit logs as CSV | Yes (ADMIN+) |
+
+### Example Request
+
+```bash
+# Submit a transaction for fraud detection
+curl -X POST https://fraudshield-app.onrender.com/transaction/validate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": 5000.00,
+    "merchantName": "Online Store",
+    "location": "New York",
+    "paymentMethod": "CREDIT_CARD"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "transaction": {
+    "transactionId": "TXN123456",
+    "amount": 5000.00,
+    "status": "FRAUD",
+    "riskScore": 85,
+    "mlConfidence": 0.92,
+    "fraudReasons": ["R03: Unusual amount for merchant", "R07: High ML fraud probability"]
+  },
+  "message": "Transaction flagged as potential fraud",
+  "timestamp": "2024-03-27T10:30:00Z"
+}
+```
+
+## 🧪 Testing
+
+### Run Unit Tests
+
+```bash
+mvn test
+```
+
+### Run Integration Tests
+
+```bash
+mvn verify
+```
+
+### Test ML Service
+
+```bash
+# Health check
+curl http://localhost:5000/health
+
+# Prediction test
+curl -X POST http://localhost:5000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 1000, "hour": 14, "merchant_category": "retail"}'
+```
+
+### Test Coverage
+
+```bash
+mvn clean test jacoco:report
+```
+
+View coverage report: `target/site/jacoco/index.html`
 
 ## Troubleshooting
 
