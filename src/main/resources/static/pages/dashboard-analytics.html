@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Barlow+Condensed:wght@300;400;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles/dashboard/dashboard.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -77,34 +78,79 @@
         <div class="page-title">ANALYTICS</div>
         <div class="page-subtitle">// FRAUD PATTERN ANALYSIS</div>
       </div>
-      <button class="btn btn-primary" onclick="loadAnalytics()">↺ REFRESH</button>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <select class="form-select compact-select" id="analytics-range" onchange="loadAnalytics()">
+          <option value="7">LAST 7 DAYS</option>
+          <option value="30" selected>LAST 30 DAYS</option>
+          <option value="90">LAST 90 DAYS</option>
+        </select>
+        <button class="btn btn-primary" onclick="loadAnalytics()">↺ REFRESH</button>
+      </div>
     </div>
 
-    <div class="grid-3">
+    <div class="stats-grid stats-grid-users analytics-summary-grid" id="analytics-summary-cards">
+      <div class="stat-card cyan">
+        <div class="stat-label">Window Volume</div>
+        <div class="stat-value" id="analytics-total-transactions">—</div>
+        <div class="stat-meta" id="analytics-transaction-delta">vs previous window</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Fraud Count</div>
+        <div class="stat-value" id="analytics-fraud-count">—</div>
+        <div class="stat-meta" id="analytics-fraud-delta">vs previous window</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-label">Fraud Amount</div>
+        <div class="stat-value" id="analytics-fraud-amount">—</div>
+        <div class="stat-meta" id="analytics-amount-delta">vs previous window</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Avg Risk Score</div>
+        <div class="stat-value" id="analytics-average-risk">—</div>
+        <div class="stat-meta" id="analytics-risk-delta">vs previous window</div>
+      </div>
+    </div>
+
+    <div class="grid-2 analytics-grid-top">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title"><div class="panel-title-dot"></div> FRAUD TREND OVER TIME</div></div>
+        <div class="panel-body chart-panel-body">
+          <canvas id="trend-chart" class="analytics-chart"></canvas>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title"><div class="panel-title-dot"></div> TOTAL VS FRAUD</div></div>
+        <div class="panel-body chart-panel-body">
+          <canvas id="volume-chart" class="analytics-chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-3 analytics-grid-middle">
       <div class="panel">
         <div class="panel-header"><div class="panel-title"><div class="panel-title-dot"></div> RISK DISTRIBUTION</div></div>
-        <div class="panel-body" id="risk-dist-panel">
-          <div class="empty-state"><div class="empty-text">Click Refresh</div></div>
+        <div class="panel-body chart-panel-body">
+          <canvas id="risk-chart" class="analytics-chart"></canvas>
         </div>
       </div>
       <div class="panel">
         <div class="panel-header"><div class="panel-title"><div class="panel-title-dot"></div> IP THREAT TYPES</div></div>
-        <div class="panel-body" id="ip-dist-panel">
-          <div class="empty-state"><div class="empty-text">Click Refresh</div></div>
+        <div class="panel-body chart-panel-body">
+          <canvas id="ip-chart" class="analytics-chart"></canvas>
         </div>
       </div>
       <div class="panel">
-        <div class="panel-header"><div class="panel-title"><div class="panel-title-dot"></div> AMOUNT SUMMARY</div></div>
-        <div class="panel-body" id="amount-panel">
-          <div class="empty-state"><div class="empty-text">Click Refresh</div></div>
+        <div class="panel-header"><div class="panel-title"><div class="panel-title-dot"></div> MERCHANT FRAUD MIX</div></div>
+        <div class="panel-body chart-panel-body">
+          <canvas id="merchant-chart" class="analytics-chart"></canvas>
         </div>
       </div>
     </div>
 
     <div class="panel">
       <div class="panel-header"><div class="panel-title"><div class="panel-title-dot"></div> RULE HIT FREQUENCY</div></div>
-      <div class="panel-body" id="rule-freq-panel">
-        <div class="empty-state"><div class="empty-text">Click Refresh to see rule breakdown</div></div>
+      <div class="panel-body chart-panel-body chart-panel-body-tall">
+        <canvas id="rule-chart" class="analytics-chart analytics-chart-tall"></canvas>
       </div>
     </div>
   </div>

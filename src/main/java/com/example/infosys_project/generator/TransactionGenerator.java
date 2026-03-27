@@ -1,6 +1,9 @@
 package com.example.infosys_project.generator;
 
 import com.example.infosys_project.model.TransactionModel;
+
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Random;
 
 public class TransactionGenerator {
@@ -159,11 +162,65 @@ public class TransactionGenerator {
 
     // Main entry point.
 
-    /** 31% fraud, 69% normal (increased by +2%) */
+    /**
+     * Distribution target:
+     * NORMAL 75% | MEDIUM 12% | HIGH 8% | CRITICAL 5%
+     */
     public static TransactionModel generateTransaction() {
-        return random.nextInt(100) < 31
-                ? generateFraudTransaction()
-                : generateNormalTransaction();
+        int roll = random.nextInt(100);
+        if (roll < 75) {
+            return generateNormalTransaction();
+        }
+        if (roll < 87) {
+            return generateMediumRiskTransaction();
+        }
+        if (roll < 95) {
+            return generateHighRiskTransaction();
+        }
+        return generateCriticalRiskTransaction();
+    }
+
+    public static TransactionModel generateTransactionForScenario(List<String> scenarios,
+                                                                 boolean forceFraud,
+                                                                 boolean forceMedium,
+                                                                 Double amountMin,
+                                                                 Double amountMax) {
+        TransactionModel tx;
+        if (forceFraud) {
+            tx = (scenarios == null || scenarios.isEmpty())
+                    ? generateWeightedFraudTransaction()
+                    : generateScenarioTransaction(scenarios);
+        } else if (forceMedium) {
+            tx = generateMediumRiskTransaction();
+        } else {
+            // Keep non-fraud traffic mixed: ~86.2% NORMAL, ~13.8% MEDIUM
+            tx = random.nextInt(1000) < 862
+                    ? generateNormalTransaction()
+                    : generateMediumRiskTransaction();
+        }
+
+        double min = amountMin == null ? 0.0 : Math.max(0.0, amountMin);
+        double max = amountMax == null ? Math.max(min + 1000.0, 100000.0) : Math.max(amountMax, min + 1.0);
+        tx.amount = Math.max(min, Math.min(max, tx.amount));
+        tx.balance = Math.max(tx.amount * 1.02, tx.balance);
+        return tx;
+    }
+
+    private static TransactionModel generateScenarioTransaction(List<String> scenarios) {
+        if (scenarios == null || scenarios.isEmpty()) {
+            return generateFraudTransaction();
+        }
+        String scenario = scenarios.get(random.nextInt(scenarios.size()));
+        return switch (scenario.toUpperCase()) {
+            case "HIGH_AMOUNT" -> fraudHighAmount();
+            case "RAPID_FIRE", "VPN" -> fraudRapidVpn();
+            case "TOR", "INTERNATIONAL" -> fraudTorInternational();
+            case "CRYPTO", "GAMBLING", "DATACENTER" -> fraudRiskMerchant();
+            case "AMOUNT_SPIKE", "NEW_RECEIVER" -> fraudAmountSpike();
+            case "PROXY", "NEW_LOCATION", "HIGH_VOLUME" -> fraudProxyVolume();
+            case "MAX_CHAOS" -> fraudMaxChaos();
+            default -> generateFraudTransaction();
+        };
     }
 
     // Normal transaction generation.
@@ -175,7 +232,7 @@ public class TransactionGenerator {
         double balance= Math.round((amount * 4 + random.nextInt(50000)) * 100.0) / 100.0;
         String[] ip   = generateIpWithTag("CLEAN");
 
-        return new TransactionModel(
+        TransactionModel tx = new TransactionModel(
             NAMES[random.nextInt(NAMES.length)],
             generatePhone(),
             generateAccount(), generateAccount(),
@@ -197,154 +254,235 @@ public class TransactionGenerator {
             Math.round(avg * 100.0) / 100.0,
             false, false
         );
+        assignTimestamp(tx, true);
+        return tx;
+    }
+
+    static TransactionModel generateMediumRiskTransaction() {
+        String loc = INDIAN_LOCATIONS[random.nextInt(INDIAN_LOCATIONS.length)];
+        String[] ip = generateIpWithTag("CLEAN");
+        TransactionModel tx = new TransactionModel(
+                NAMES[random.nextInt(NAMES.length)],
+                generatePhone(),
+                generateAccount(),
+                generateAccount(),
+                BANKS[random.nextInt(BANKS.length)],
+                180 + random.nextInt(700),
+                "debit",
+                12000 + random.nextInt(18000),
+                120000 + random.nextInt(160000),
+                "INR",
+                "retail",
+                generateMerchantId("retail"),
+                TRANSACTION_MODES[random.nextInt(TRANSACTION_MODES.length)],
+                loc,
+                loc,
+                false,
+                0,
+                DEVICES[random.nextInt(DEVICES.length)],
+                true,
+                ip[0],
+                false,
+                "India",
+                true,
+                "CLEAN",
+                4,
+                7,
+                5000.0,
+                false,
+                false
+        );
+        assignTimestamp(tx, false);
+        return tx;
+    }
+
+    static TransactionModel generateHighRiskTransaction() {
+        String loc = INDIAN_LOCATIONS[random.nextInt(INDIAN_LOCATIONS.length)];
+        String[] ip = generateIpWithTag("VPN");
+        TransactionModel tx = new TransactionModel(
+                NAMES[random.nextInt(NAMES.length)],
+                generatePhone(),
+                generateAccount(),
+                generateAccount(),
+                BANKS[random.nextInt(BANKS.length)],
+                120 + random.nextInt(500),
+                "debit",
+                50000 + random.nextInt(25000),
+                220000 + random.nextInt(260000),
+                "INR",
+                "electronics",
+                generateMerchantId("electronics"),
+                "UPI",
+                loc,
+                loc,
+                false,
+                0,
+                DEVICES[random.nextInt(DEVICES.length)],
+                true,
+                ip[0],
+                true,
+                resolveIpCountry("VPN", loc),
+                false,
+                "VPN",
+                8,
+                15,
+                7000.0,
+                false,
+                true
+        );
+        assignTimestamp(tx, false);
+        return tx;
+    }
+
+    static TransactionModel generateCriticalRiskTransaction() {
+        TransactionModel tx = fraudMaxChaos();
+        assignTimestamp(tx, false);
+        return tx;
+    }
+
+    static TransactionModel generateWeightedFraudTransaction() {
+        // fraud bucket split: HIGH 8, CRITICAL 5
+        return random.nextInt(13) < 8
+                ? generateHighRiskTransaction()
+                : generateCriticalRiskTransaction();
     }
 
     // Fraud transaction generation with seven scenarios.
     static TransactionModel generateFraudTransaction() {
         switch (random.nextInt(7)) {
 
-            case 0: {
-                // A: High amount + full balance drain + round number structuring
-                double big = ((50 + random.nextInt(50)) * 1000.0);
-                String loc = INDIAN_LOCATIONS[random.nextInt(INDIAN_LOCATIONS.length)];
-                String[] ip = generateIpWithTag("CLEAN");
-                return new TransactionModel(
-                    NAMES[random.nextInt(NAMES.length)], generatePhone(),
-                    generateAccount(), generateAccount(),
-                    BANKS[random.nextInt(BANKS.length)], 200 + random.nextInt(500),
-                    "debit", big, big * 1.05, "INR",
-                    "electronics", generateMerchantId("electronics"),
-                    TRANSACTION_MODES[random.nextInt(TRANSACTION_MODES.length)],
-                    loc, loc, false, 0,
-                    DEVICES[random.nextInt(DEVICES.length)], false,
-                    ip[0], false, "India", true, "CLEAN",
-                    1, 3, big / 15.0, false, true
-                );
-            }
+            case 0: return fraudHighAmount();
 
-            case 1: {
-                // B: Rapid fire + VPN + new device + IP mismatch
-                String loc  = INDIAN_LOCATIONS[random.nextInt(INDIAN_LOCATIONS.length)];
-                String[] ip = generateIpWithTag("VPN");
-                return new TransactionModel(
-                    NAMES[random.nextInt(NAMES.length)], generatePhone(),
-                    generateAccount(), generateAccount(),
-                    BANKS[random.nextInt(BANKS.length)], 90 + random.nextInt(200),
-                    "debit", 5000 + random.nextInt(15000),
-                    100000 + random.nextInt(200000), "INR",
-                    "retail", generateMerchantId("retail"), "UPI",
-                    loc, loc, false, 0,
-                    DEVICES[random.nextInt(DEVICES.length)], true,
-                    ip[0], true,
-                    resolveIpCountry("VPN", loc), false, "VPN",
-                    8 + random.nextInt(6), 20 + random.nextInt(10),
-                    3000.0, false, false
-                );
-            }
+            case 1: return fraudRapidVpn();
 
-            case 2: {
-                // C: Impossible travel + international + TOR network
-                String loc  = INTERNATIONAL_LOCATIONS[random.nextInt(INTERNATIONAL_LOCATIONS.length)];
-                String prev = INDIAN_LOCATIONS[random.nextInt(INDIAN_LOCATIONS.length)];
-                String[] ip = generateIpWithTag("TOR");
-                String curr = CURRENCIES[1 + random.nextInt(CURRENCIES.length - 1)];
-                return new TransactionModel(
-                    NAMES[random.nextInt(NAMES.length)], generatePhone(),
-                    generateAccount(), generateAccount(),
-                    BANKS[random.nextInt(BANKS.length)], 500 + random.nextInt(1000),
-                    "debit", 15000 + random.nextInt(40000),
-                    300000 + random.nextInt(200000), curr,
-                    "travel", generateMerchantId("travel"), "CARD",
-                    loc, prev, true, 1200 + random.nextInt(6000),
-                    DEVICES[random.nextInt(DEVICES.length)], true,
-                    ip[0], true,
-                    resolveIpCountry("TOR", loc), false, "TOR",
-                    2, 5, 8000.0, true, false
-                );
-            }
+            case 2: return fraudTorInternational();
 
-            case 3: {
-                // D: Crypto/gambling + brand new account + datacenter IP
-                String loc  = INDIAN_LOCATIONS[random.nextInt(INDIAN_LOCATIONS.length)];
-                String[] ip = generateIpWithTag("DATACENTER");
-                String merch = HIGH_RISK_MERCHANTS[random.nextInt(2)]; // crypto or gambling
-                return new TransactionModel(
-                    NAMES[random.nextInt(NAMES.length)], generatePhone(),
-                    generateAccount(), generateAccount(),
-                    BANKS[random.nextInt(BANKS.length)],
-                    3 + random.nextInt(25),
-                    "debit", 20000 + random.nextInt(50000),
-                    60000 + random.nextInt(100000), "INR",
-                    merch, generateMerchantId(merch), "IMPS",
-                    loc, loc, false, 0,
-                    DEVICES[random.nextInt(DEVICES.length)], false,
-                    ip[0], true,
-                    resolveIpCountry("DATACENTER", loc), false, "DATACENTER",
-                    3, 8, 2000.0, false, true
-                );
-            }
+            case 3: return fraudRiskMerchant();
 
-            case 4: {
-                // E: Amount spike 10x average + first-time receiver
-                double avg  = 2000 + random.nextInt(3000);
-                String loc  = INDIAN_LOCATIONS[random.nextInt(INDIAN_LOCATIONS.length)];
-                String[] ip = generateIpWithTag("CLEAN");
-                return new TransactionModel(
-                    NAMES[random.nextInt(NAMES.length)], generatePhone(),
-                    generateAccount(), generateAccount(),
-                    BANKS[random.nextInt(BANKS.length)], 700 + random.nextInt(1000),
-                    "debit", avg * 10, avg * 14, "INR",
-                    "electronics", generateMerchantId("electronics"), "NEFT",
-                    loc, loc, false, 0,
-                    DEVICES[random.nextInt(DEVICES.length)], false,
-                    ip[0], false, "India", true, "CLEAN",
-                    1, 2, avg, false, true
-                );
-            }
+            case 4: return fraudAmountSpike();
 
-            case 5: {
-                // F: Anonymous proxy + new location + new device + high daily volume
-                String loc  = INDIAN_LOCATIONS[random.nextInt(INDIAN_LOCATIONS.length)];
-                String prev = INDIAN_LOCATIONS[random.nextInt(INDIAN_LOCATIONS.length)];
-                String[] ip = generateIpWithTag("PROXY");
-                return new TransactionModel(
-                    NAMES[random.nextInt(NAMES.length)], generatePhone(),
-                    generateAccount(), generateAccount(),
-                    BANKS[random.nextInt(BANKS.length)], 180 + random.nextInt(300),
-                    "debit", 8000 + random.nextInt(20000),
-                    80000 + random.nextInt(150000), "INR",
-                    "retail", generateMerchantId("retail"), "UPI",
-                    loc, prev,
-                    !loc.equals(prev), 600 + random.nextInt(800),
-                    DEVICES[random.nextInt(DEVICES.length)], true,
-                    ip[0], true,
-                    resolveIpCountry("PROXY", loc), false, "PROXY",
-                    5, 22 + random.nextInt(8),
-                    4000.0, false, false
-                );
-            }
+            case 5: return fraudProxyVolume();
 
-            default: {
-                // G: max-chaos scenario where every flag fires (guaranteed CRITICAL).
-                String loc  = INTERNATIONAL_LOCATIONS[random.nextInt(INTERNATIONAL_LOCATIONS.length)];
-                String prev = INDIAN_LOCATIONS[random.nextInt(INDIAN_LOCATIONS.length)];
-                String[] ip = generateIpWithTag("TOR");
-                double big  = (60 + random.nextInt(40)) * 1000.0;
-                return new TransactionModel(
-                    NAMES[random.nextInt(NAMES.length)], generatePhone(),
-                    generateAccount(), generateAccount(),
-                    BANKS[random.nextInt(BANKS.length)],
-                    5 + random.nextInt(15),
-                    "debit", big, big * 1.02, "USD",
-                    "gambling", generateMerchantId("gambling"), "CARD",
-                    loc, prev, true, 1500 + random.nextInt(4000),
-                    "iPhone", true,
-                    ip[0], true,
-                    resolveIpCountry("TOR", loc), false, "TOR",
-                    9 + random.nextInt(6), 25 + random.nextInt(10),
-                    5000.0, true, true
-                );
-            }
+            default: return fraudMaxChaos();
         }
+    }
+
+    static void assignTimestamp(TransactionModel tx, boolean preferSafeHours) {
+        int hour;
+        if (preferSafeHours) {
+            int[] safeHours = {8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22};
+            hour = safeHours[random.nextInt(safeHours.length)];
+        } else {
+            hour = random.nextInt(24);
+        }
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime ts = now.withHour(hour)
+                .withMinute(random.nextInt(60))
+                .withSecond(random.nextInt(60))
+                .withNano(0);
+        if (ts.isAfter(now)) {
+            ts = ts.minusDays(1);
+        }
+        tx.timestamp = ts;
+    }
+
+    private static TransactionModel fraudHighAmount() {
+        double big = ((50 + random.nextInt(50)) * 1000.0);
+        String loc = INDIAN_LOCATIONS[random.nextInt(INDIAN_LOCATIONS.length)];
+        String[] ip = generateIpWithTag("CLEAN");
+        return new TransactionModel(
+                NAMES[random.nextInt(NAMES.length)], generatePhone(), generateAccount(), generateAccount(),
+                BANKS[random.nextInt(BANKS.length)], 200 + random.nextInt(500),
+                "debit", big, big * 1.05, "INR", "electronics", generateMerchantId("electronics"),
+                TRANSACTION_MODES[random.nextInt(TRANSACTION_MODES.length)], loc, loc, false, 0,
+                DEVICES[random.nextInt(DEVICES.length)], false, ip[0], false, "India", true, "CLEAN",
+                1, 3, big / 15.0, false, true
+        );
+    }
+
+    private static TransactionModel fraudRapidVpn() {
+        String loc = INDIAN_LOCATIONS[random.nextInt(INDIAN_LOCATIONS.length)];
+        String[] ip = generateIpWithTag("VPN");
+        return new TransactionModel(
+                NAMES[random.nextInt(NAMES.length)], generatePhone(), generateAccount(), generateAccount(),
+                BANKS[random.nextInt(BANKS.length)], 90 + random.nextInt(200),
+                "debit", 5000 + random.nextInt(15000), 100000 + random.nextInt(200000), "INR",
+                "retail", generateMerchantId("retail"), "UPI", loc, loc, false, 0,
+                DEVICES[random.nextInt(DEVICES.length)], true, ip[0], true,
+                resolveIpCountry("VPN", loc), false, "VPN", 8 + random.nextInt(6), 20 + random.nextInt(10),
+                3000.0, false, false
+        );
+    }
+
+    private static TransactionModel fraudTorInternational() {
+        String loc = INTERNATIONAL_LOCATIONS[random.nextInt(INTERNATIONAL_LOCATIONS.length)];
+        String prev = INDIAN_LOCATIONS[random.nextInt(INDIAN_LOCATIONS.length)];
+        String[] ip = generateIpWithTag("TOR");
+        String curr = CURRENCIES[1 + random.nextInt(CURRENCIES.length - 1)];
+        return new TransactionModel(
+                NAMES[random.nextInt(NAMES.length)], generatePhone(), generateAccount(), generateAccount(),
+                BANKS[random.nextInt(BANKS.length)], 500 + random.nextInt(1000),
+                "debit", 15000 + random.nextInt(40000), 300000 + random.nextInt(200000), curr,
+                "travel", generateMerchantId("travel"), "CARD", loc, prev, true, 1200 + random.nextInt(6000),
+                DEVICES[random.nextInt(DEVICES.length)], true, ip[0], true,
+                resolveIpCountry("TOR", loc), false, "TOR", 2, 5, 8000.0, true, false
+        );
+    }
+
+    private static TransactionModel fraudRiskMerchant() {
+        String loc = INDIAN_LOCATIONS[random.nextInt(INDIAN_LOCATIONS.length)];
+        String[] ip = generateIpWithTag("DATACENTER");
+        String merch = HIGH_RISK_MERCHANTS[random.nextInt(2)];
+        return new TransactionModel(
+                NAMES[random.nextInt(NAMES.length)], generatePhone(), generateAccount(), generateAccount(),
+                BANKS[random.nextInt(BANKS.length)], 3 + random.nextInt(25),
+                "debit", 20000 + random.nextInt(50000), 60000 + random.nextInt(100000), "INR",
+                merch, generateMerchantId(merch), "IMPS", loc, loc, false, 0,
+                DEVICES[random.nextInt(DEVICES.length)], false, ip[0], true,
+                resolveIpCountry("DATACENTER", loc), false, "DATACENTER", 3, 8, 2000.0, false, true
+        );
+    }
+
+    private static TransactionModel fraudAmountSpike() {
+        double avg = 2000 + random.nextInt(3000);
+        String loc = INDIAN_LOCATIONS[random.nextInt(INDIAN_LOCATIONS.length)];
+        String[] ip = generateIpWithTag("CLEAN");
+        return new TransactionModel(
+                NAMES[random.nextInt(NAMES.length)], generatePhone(), generateAccount(), generateAccount(),
+                BANKS[random.nextInt(BANKS.length)], 700 + random.nextInt(1000),
+                "debit", avg * 10, avg * 14, "INR", "electronics", generateMerchantId("electronics"), "NEFT",
+                loc, loc, false, 0, DEVICES[random.nextInt(DEVICES.length)], false,
+                ip[0], false, "India", true, "CLEAN", 1, 2, avg, false, true
+        );
+    }
+
+    private static TransactionModel fraudProxyVolume() {
+        String loc = INDIAN_LOCATIONS[random.nextInt(INDIAN_LOCATIONS.length)];
+        String prev = INDIAN_LOCATIONS[random.nextInt(INDIAN_LOCATIONS.length)];
+        String[] ip = generateIpWithTag("PROXY");
+        return new TransactionModel(
+                NAMES[random.nextInt(NAMES.length)], generatePhone(), generateAccount(), generateAccount(),
+                BANKS[random.nextInt(BANKS.length)], 180 + random.nextInt(300),
+                "debit", 8000 + random.nextInt(20000), 80000 + random.nextInt(150000), "INR",
+                "retail", generateMerchantId("retail"), "UPI", loc, prev,
+                !loc.equals(prev), 600 + random.nextInt(800), DEVICES[random.nextInt(DEVICES.length)], true,
+                ip[0], true, resolveIpCountry("PROXY", loc), false, "PROXY", 5, 22 + random.nextInt(8),
+                4000.0, false, false
+        );
+    }
+
+    private static TransactionModel fraudMaxChaos() {
+        String loc = INTERNATIONAL_LOCATIONS[random.nextInt(INTERNATIONAL_LOCATIONS.length)];
+        String prev = INDIAN_LOCATIONS[random.nextInt(INDIAN_LOCATIONS.length)];
+        String[] ip = generateIpWithTag("TOR");
+        double big = (60 + random.nextInt(40)) * 1000.0;
+        return new TransactionModel(
+                NAMES[random.nextInt(NAMES.length)], generatePhone(), generateAccount(), generateAccount(),
+                BANKS[random.nextInt(BANKS.length)], 5 + random.nextInt(15),
+                "debit", big, big * 1.02, "USD", "gambling", generateMerchantId("gambling"), "CARD",
+                loc, prev, true, 1500 + random.nextInt(4000), "iPhone", true,
+                ip[0], true, resolveIpCountry("TOR", loc), false, "TOR", 9 + random.nextInt(6),
+                25 + random.nextInt(10), 5000.0, true, true
+        );
     }
 }

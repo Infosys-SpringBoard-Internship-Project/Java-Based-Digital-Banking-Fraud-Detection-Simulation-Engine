@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRAUDSHIELD - SUPERADMIN SETUP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles/login-page.css">
+</head>
+<body>
+    <div class="bg-animation"></div>
+
+    <div class="login-wrapper">
+        <div class="login-card">
+            <div class="scanline"></div>
+
+            <div class="lock-icon">+</div>
+            <div class="subtitle">SUPERADMIN BOOTSTRAP</div>
+            <h1 class="title"><a href="/pages/index.html" class="brand-link">FRAUDSHIELD</a></h1>
+            <div class="error-message" id="setupMsg" style="display:block; margin-bottom: 1rem;"></div>
+
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="name">FULL NAME</label>
+                    <input type="text" id="name" placeholder="Superadmin Name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">SUPERADMIN EMAIL</label>
+                    <input type="email" id="email" placeholder="owner@fraudshield.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">PASSWORD</label>
+                    <input type="password" id="password" placeholder="Minimum 6 characters" required>
+                    <button type="button" class="password-toggle" id="togglePassword">SHOW</button>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    <span class="btn-text">CREATE SUPERADMIN</span>
+                    <div class="spinner"></div>
+                </button>
+
+                <div class="error-message" id="registerMsg"></div>
+            </form>
+
+            <div class="auth-actions">
+                <a href="/pages/login.html" class="text-action text-action-link">BACK TO LOGIN</a>
+            </div>
+        </div>
+
+        <div class="secure-status">
+            <span class="secure-dot"></span> SECURE CONNECTION
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item"><div class="green-dot"></div> SYSTEM: ONLINE</div>
+        <div class="status-item">SERVER: localhost:8080</div>
+        <div class="status-item">ENCRYPTION: ACTIVE</div>
+    </div>
+
+    <script src="/scripts/superadmin-setup.js"></script>
+</body>
+</html>

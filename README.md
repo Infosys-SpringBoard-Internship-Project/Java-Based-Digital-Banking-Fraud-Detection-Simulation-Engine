@@ -21,21 +21,16 @@
   <em>Rule-based fraud scoring · Machine learning integration · Real-time dashboard · Admin authentication · Email alerts</em>
 </p>
 
-## Table of Contents
+## Team
 
-- [Overview](#overview)
-- [Live Demo](#live-demo)
-- [Features](#features)
-- [System Architecture](#system-architecture)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Configuration](#configuration)
-- [API Reference](#api-reference)
-- [Fraud Detection Rules](#fraud-detection-rules)
-- [Machine Learning](#machine-learning)
-- [Team](#-team)
-- [Acknowledgements](#-acknowledgements)
+| Name | GitHub |
+|---|---|
+| Team Member 1 | `@advikagarwal` |
+| Team Member 2 | `@Shakthisri16` |
+| Team Member 3 | `@tarakeshwararao-S` |
+| Team Member 4 | `@nishika701` |
+| Team Member 5 | `@jaswanth82006` |
+| Team Member 6 | `@GNavya15` |
 
 ## Overview
 
@@ -375,9 +370,6 @@ spring.mail.username=
 spring.mail.password=
 spring.mail.properties.mail.smtp.auth=true
 spring.mail.properties.mail.smtp.starttls.enable=true
-
-# Alert recipient override.
-admin.alert.email=
 ```
 
 > Session lifetime is currently fixed in code at `8` hours inside `AuthService`. It is not externalized as a Spring property in this repository snapshot.

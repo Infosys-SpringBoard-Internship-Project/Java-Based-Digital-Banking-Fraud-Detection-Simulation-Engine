@@ -2,6 +2,8 @@ package com.example.infosys_project.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -34,8 +36,18 @@ public class AdminUser {
     @Column(name = "name", nullable = false, length = 255)
     private String name;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 50)
-    private String role = "ADMIN";
+    private UserRole role = UserRole.ANALYST;
+
+    @Column(name = "email_alerts_enabled", nullable = false)
+    private Boolean emailAlertsEnabled = true;
+
+    @Column(name = "created_by", length = 255)
+    private String createdBy;
+
+    @Column(name = "can_be_deleted", nullable = false)
+    private Boolean canBeDeleted = true;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -46,6 +58,9 @@ public class AdminUser {
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
 
+    @Column(name = "must_change_password", nullable = false)
+    private Boolean mustChangePassword = false;
+
     public AdminUser() {
     }
 
@@ -53,8 +68,10 @@ public class AdminUser {
         this.name = name;
         this.email = email;
         this.password = password;
-        this.role = "ADMIN";
+        this.role = UserRole.ANALYST;
         this.isActive = true;
+        this.emailAlertsEnabled = true;
+        this.canBeDeleted = true;
     }
 
     @PrePersist
@@ -62,8 +79,17 @@ public class AdminUser {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }
-        if (role == null || role.isBlank()) {
-            role = "ADMIN";
+        if (role == null) {
+            role = UserRole.ANALYST;
+        }
+        if (emailAlertsEnabled == null) {
+            emailAlertsEnabled = true;
+        }
+        if (canBeDeleted == null) {
+            canBeDeleted = true;
+        }
+        if (mustChangePassword == null) {
+            mustChangePassword = false;
         }
     }
 
@@ -99,12 +125,36 @@ public class AdminUser {
         this.name = name;
     }
 
-    public String getRole() {
+    public UserRole getRole() {
         return role;
     }
 
-    public void setRole(String role) {
+    public void setRole(UserRole role) {
         this.role = role;
+    }
+
+    public Boolean getEmailAlertsEnabled() {
+        return emailAlertsEnabled;
+    }
+
+    public void setEmailAlertsEnabled(Boolean emailAlertsEnabled) {
+        this.emailAlertsEnabled = emailAlertsEnabled;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public Boolean getCanBeDeleted() {
+        return canBeDeleted;
+    }
+
+    public void setCanBeDeleted(Boolean canBeDeleted) {
+        this.canBeDeleted = canBeDeleted;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -129,5 +179,13 @@ public class AdminUser {
 
     public void setActive(boolean active) {
         isActive = active;
+    }
+
+    public Boolean getMustChangePassword() {
+        return mustChangePassword;
+    }
+
+    public void setMustChangePassword(Boolean mustChangePassword) {
+        this.mustChangePassword = mustChangePassword;
     }
 }

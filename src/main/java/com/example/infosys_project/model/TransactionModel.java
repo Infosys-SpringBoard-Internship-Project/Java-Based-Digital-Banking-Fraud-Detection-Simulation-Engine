@@ -129,7 +129,7 @@ public class TransactionModel {
     public double riskScore;
 
     @Column(name = "risk_level", nullable = false, length = 20)
-    public String riskLevel;   // LOW | MEDIUM | HIGH | CRITICAL
+    public String riskLevel;   // NORMAL | MEDIUM | HIGH | CRITICAL
 
     @Column(name = "ml_fraud_probability", nullable = false)
     public double mlFraudProbability;
@@ -188,7 +188,7 @@ public class TransactionModel {
         this.isFraud               = false;
         this.fraudReason           = "None";
         this.riskScore             = 0.0;
-        this.riskLevel             = "LOW";
+        this.riskLevel             = "NORMAL";
         this.mlFraudProbability    = 0.0;
     }
 }

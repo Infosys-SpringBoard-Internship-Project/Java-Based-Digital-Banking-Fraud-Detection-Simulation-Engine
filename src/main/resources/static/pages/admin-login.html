@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FRAUDSHIELD — ADMIN ACCESS</title>
+    <title>FRAUDSHIELD — USER LOGIN</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
@@ -18,17 +18,26 @@
             <div class="scanline"></div>
             
             <div class="lock-icon">🔒</div>
-            <div class="subtitle">ADMIN ACCESS</div>
-            <h1 class="title">FRAUDSHIELD</h1>
+            <div class="subtitle">USER LOGIN</div>
+            <h1 class="title"><a href="/pages/index.html" class="brand-link">FRAUDSHIELD</a></h1>
+            <div class="error-message" id="setupStatus" style="display:block; margin-bottom: 16px;"></div>
 
             <form id="loginForm">
                 <div class="form-group">
-                    <label for="email">ADMIN EMAIL</label>
-                    <input type="email" id="email" placeholder="admin@fraudshield.com" required>
+                    <label for="loginRole">ROLE</label>
+                    <select id="loginRole" class="login-select">
+                        <option value="ADMIN">ADMIN</option>
+                        <option value="ANALYST">ANALYST</option>
+                    </select>
+                    <div class="role-help" id="roleHelp">Sign in with your assigned work account.</div>
+                </div>
+                <div class="form-group">
+                    <label for="email" id="loginEmailLabel">WORK EMAIL</label>
+                    <input type="email" id="email" placeholder="user@fraudshield.com" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="password">PASSWORD</label>
+                    <label for="password">LOGIN PASSWORD</label>
                     <input type="password" id="password" required>
                     <button type="button" class="password-toggle" id="togglePassword">SHOW</button>
                 </div>
@@ -42,16 +51,57 @@
                 </div>
 
                 <button type="submit" class="submit-btn" id="submitBtn">
-                    <span class="btn-text">AUTHENTICATE &rarr;</span>
+                    <span class="btn-text">LOGIN &rarr;</span>
                     <div class="spinner"></div>
                 </button>
 
                 <div class="error-message" id="errorMsg"></div>
             </form>
+
+            <div class="auth-actions">
+                <button type="button" class="text-action" id="openCreateAccount">CREATE SUPERADMIN</button>
+                <button type="button" class="text-action" id="openForgotPassword">FORGOT PASSWORD?</button>
+            </div>
+            <div class="role-help" style="margin-top:8px;">Use forgot password if you cannot access your account.</div>
+
+            <form id="forgotPasswordForm" class="aux-form" style="display: none;">
+                <h2 class="aux-title">RESET PASSWORD</h2>
+                <div class="form-group">
+                    <label for="forgotEmail">WORK EMAIL</label>
+                    <input type="email" id="forgotEmail" placeholder="admin@fraudshield.com" required>
+                </div>
+                <div class="aux-actions">
+                    <button type="submit" class="submit-btn" id="forgotPasswordBtn">
+                        <span class="btn-text">SEND TEMP PASSWORD</span>
+                        <div class="spinner"></div>
+                    </button>
+                    <button type="button" class="cancel-btn" id="cancelForgotPassword">CANCEL</button>
+                </div>
+                <div class="error-message" id="forgotMsg"></div>
+            </form>
+
+            <form id="forceChangeForm" class="aux-form" style="display: none;">
+                <h2 class="aux-title">SET NEW PASSWORD</h2>
+                <div class="form-group">
+                    <label for="forceNewPassword">NEW PASSWORD</label>
+                    <input type="password" id="forceNewPassword" minlength="6" required>
+                </div>
+                <div class="form-group">
+                    <label for="forceConfirmPassword">RE-ENTER NEW PASSWORD</label>
+                    <input type="password" id="forceConfirmPassword" minlength="6" required>
+                </div>
+                <div class="aux-actions">
+                    <button type="submit" class="submit-btn" id="forceChangeBtn">
+                        <span class="btn-text">UPDATE PASSWORD</span>
+                        <div class="spinner"></div>
+                    </button>
+                    <button type="button" class="cancel-btn" id="cancelForceChange">CANCEL</button>
+                </div>
+                <div class="error-message" id="forceMsg"></div>
+            </form>
         </div>
 
         <div class="footer-links">
-            <a href="/pages/index.html" class="back-link">&larr; BACK TO HOME</a>
             <span class="auth-text">Authorized personnel only</span>
         </div>
 

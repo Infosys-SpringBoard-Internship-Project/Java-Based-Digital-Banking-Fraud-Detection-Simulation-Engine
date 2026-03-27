@@ -10,7 +10,7 @@ public class FraudDetector {
 
     /*
      * Risk score range is 0.0 to 10.0 (capped).
-     * LOW: 0.0-2.2, MEDIUM: 2.3-4.5, HIGH: 4.6-7.1, CRITICAL: 7.2-10.0.
+     * NORMAL: 0.0-0.8, MEDIUM: 0.9-4.1, HIGH: 4.2-8.1, CRITICAL: 8.2-10.0.
      */
 
     public static void checkFraud(TransactionModel tx) {
@@ -28,7 +28,7 @@ public class FraudDetector {
         }
 
         // Rule 2: odd hours (1 AM to 4 AM).
-        int hour = LocalDateTime.now().getHour();
+        int hour = tx.timestamp != null ? tx.timestamp.getHour() : LocalDateTime.now().getHour();
         if (hour >= 1 && hour < 5) {
             score += 2.0;
             rules.add("R02:OddHours(hour=" + hour + ")");
@@ -166,17 +166,17 @@ public class FraudDetector {
         tx.riskScore = Math.round(score * 10.0) / 10.0;
 
         // Assign final risk level and fraud flag.
-        if (tx.riskScore >= 7.2) {
+        if (tx.riskScore >= 8.2) {
             tx.riskLevel = "CRITICAL";
             tx.isFraud   = true;
-        } else if (tx.riskScore >= 4.6) {
+        } else if (tx.riskScore >= 4.2) {
             tx.riskLevel = "HIGH";
             tx.isFraud   = true;
-        } else if (tx.riskScore >= 2.3) {
+        } else if (tx.riskScore >= 0.9) {
             tx.riskLevel = "MEDIUM";
             tx.isFraud   = false;
         } else {
-            tx.riskLevel = "LOW";
+            tx.riskLevel = "NORMAL";
             tx.isFraud   = false;
         }
 

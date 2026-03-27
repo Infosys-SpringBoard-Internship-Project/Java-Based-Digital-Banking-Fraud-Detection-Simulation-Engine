@@ -72,12 +72,15 @@
 
   <!-- MANUAL INPUT -->
   <div class="section active" id="tab-manual">
+    <div class="panel" id="read-only-banner" style="display:none; margin-bottom:16px; border-color:rgba(255,215,64,0.35);">
+      <div class="panel-body read-only-banner">ANALYST ACCESS IS READ-ONLY. MANUAL SUBMISSION IS RESERVED FOR ADMIN USERS.</div>
+    </div>
     <div class="page-header">
       <div>
         <div class="page-title">MANUAL SUBMISSION</div>
         <div class="page-subtitle">// SUBMIT TRANSACTION FOR FRAUD ANALYSIS</div>
       </div>
-      <button class="btn btn-ghost" onclick="fillSampleFraud()">LOAD FRAUD SAMPLE</button>
+      <button class="btn btn-ghost" onclick="fillSampleFraud()" data-requires-write="true">LOAD FRAUD SAMPLE</button>
     </div>
 
     <div class="grid-65-35" style="align-items: start;">
@@ -316,10 +319,10 @@
           </div>
 
           <div style="display:flex; gap:10px; margin-top:8px;">
-            <button class="btn btn-primary" style="flex:1;" onclick="submitManual()">
+            <button class="btn btn-primary" style="flex:1;" onclick="submitManual()" data-requires-write="true">
               ▶ ANALYZE TRANSACTION
             </button>
-            <button class="btn btn-ghost" onclick="resetForm()">RESET</button>
+            <button class="btn btn-ghost" onclick="resetForm()" data-requires-write="true">RESET</button>
           </div>
         </div>
       </div>

@@ -15,6 +15,20 @@ DB_HOST=""
 DB_PORT="5432"
 DB_NAME=""
 
+load_env_files() {
+  local env_file
+  for env_file in "${ROOT_DIR}/.env.local" "${ROOT_DIR}/.env"; do
+    if [[ -f "${env_file}" ]]; then
+      set -a
+      # shellcheck disable=SC1090
+      source "${env_file}"
+      set +a
+      echo "[RUN] Loaded environment from $(basename "${env_file}")"
+      return
+    fi
+  done
+}
+
 cleanup() {
   if [[ "${ML_STARTED_BY_SCRIPT}" -eq 1 && -n "${ML_PID}" ]]; then
     echo "[RUN] Stopping ML API (pid=${ML_PID})"
@@ -56,27 +70,52 @@ read_property() {
   trim "${line#*=}"
 }
 
+resolve_placeholder_default() {
+  local value="$1"
+  if [[ "${value}" =~ ^\$\{[^:}]+:(.*)\}$ ]]; then
+    printf '%s' "${BASH_REMATCH[1]}"
+    return
+  fi
+  printf '%s' "${value}"
+}
+
 load_db_config() {
   if [[ ! -f "${APP_PROPS}" ]]; then
     echo "[RUN] Missing application.properties at ${APP_PROPS}" >&2
     exit 1
   fi
 
-  DB_URL="$(read_property "spring.datasource.url" || true)"
-  DB_USER="$(read_property "spring.datasource.username" || true)"
-  DB_PASSWORD="$(read_property "spring.datasource.password" || true)"
+  DB_URL="${SPRING_DATASOURCE_URL:-}"
+  DB_USER="${SPRING_DATASOURCE_USERNAME:-}"
+  DB_PASSWORD="${SPRING_DATASOURCE_PASSWORD:-}"
+
+  if [[ -z "${DB_URL}" ]]; then
+    DB_URL="$(read_property "spring.datasource.url" || true)"
+  fi
+  if [[ -z "${DB_USER}" ]]; then
+    DB_USER="$(read_property "spring.datasource.username" || true)"
+  fi
+  if [[ -z "${DB_PASSWORD}" ]]; then
+    DB_PASSWORD="$(read_property "spring.datasource.password" || true)"
+  fi
+
+  DB_URL="$(resolve_placeholder_default "${DB_URL}")"
+  DB_USER="$(resolve_placeholder_default "${DB_USER}")"
+  DB_PASSWORD="$(resolve_placeholder_default "${DB_PASSWORD}")"
 
   if [[ -z "${DB_URL}" || -z "${DB_USER}" || -z "${DB_PASSWORD}" ]]; then
-    echo "[RUN] Database settings are incomplete in application.properties." >&2
+    echo "[RUN] Database settings are incomplete. Set SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME and SPRING_DATASOURCE_PASSWORD." >&2
     exit 1
   fi
 
   if [[ "${DB_PASSWORD}" == "your_db_password" ]]; then
-    echo "[RUN] Replace spring.datasource.password in application.properties before starting the project." >&2
+    echo "[RUN] Replace SPRING_DATASOURCE_PASSWORD with your Supabase DB password before starting the project." >&2
     exit 1
   fi
 
-  if [[ ! "${DB_URL}" =~ ^jdbc:postgresql://([^/:]+)(:([0-9]+))?/([^?]+)$ ]]; then
+  local parsed_url="${DB_URL}"
+
+  if [[ ! "${parsed_url}" =~ ^jdbc:postgresql://([^/:]+)(:([0-9]+))?/([^?]+)(\?.*)?$ ]]; then
     echo "[RUN] Unsupported spring.datasource.url format: ${DB_URL}" >&2
     echo "[RUN] Expected format: jdbc:postgresql://host:port/database" >&2
     exit 1
@@ -89,55 +128,20 @@ load_db_config() {
   DB_NAME="${BASH_REMATCH[4]}"
 }
 
-check_command() {
-  command -v "$1" >/dev/null 2>&1
-}
-
 ensure_database_ready() {
-  local pg_ready_cmd=()
-  local psql_cmd=()
-  local createdb_cmd=()
-
   echo "[RUN] Using database ${DB_NAME} on ${DB_HOST}:${DB_PORT} with user ${DB_USER}"
 
-  if ! check_command pg_isready; then
-    echo "[RUN] pg_isready is not installed. Skipping PostgreSQL readiness check."
-  else
-    pg_ready_cmd=(pg_isready -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}")
-    if ! PGPASSWORD="${DB_PASSWORD}" "${pg_ready_cmd[@]}" >/dev/null 2>&1; then
-      echo "[RUN] PostgreSQL is not reachable at ${DB_HOST}:${DB_PORT} for user ${DB_USER}." >&2
-      exit 1
-    fi
-  fi
-
-  if ! check_command psql; then
-    echo "[RUN] psql is not installed. Cannot verify or create database ${DB_NAME} automatically." >&2
-    echo "[RUN] Install PostgreSQL client tools or create the database manually, then rerun." >&2
+  if [[ "${DB_HOST}" != *"supabase.co" && "${DB_HOST}" != *"pooler.supabase.com" ]]; then
+    echo "[RUN] This launcher is now Supabase-only." >&2
+    echo "[RUN] Set SPRING_DATASOURCE_URL to your Supabase host (db.<project-ref>.supabase.co or pooler.supabase.com)." >&2
     exit 1
   fi
 
-  psql_cmd=(psql -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'")
-  if [[ "$(PGPASSWORD="${DB_PASSWORD}" "${psql_cmd[@]}" 2>/dev/null | tr -d '[:space:]')" == "1" ]]; then
-    echo "[RUN] Database ${DB_NAME} already exists."
-    return
-  fi
-
-  if ! check_command createdb; then
-    echo "[RUN] Database ${DB_NAME} does not exist and createdb is not installed." >&2
-    echo "[RUN] Create the database manually, then rerun." >&2
-    exit 1
-  fi
-
-  echo "[RUN] Creating database ${DB_NAME}..."
-  createdb_cmd=(createdb -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" "${DB_NAME}")
-  if ! PGPASSWORD="${DB_PASSWORD}" "${createdb_cmd[@]}"; then
-    echo "[RUN] Failed to create database ${DB_NAME}." >&2
-    exit 1
-  fi
+  echo "[RUN] Supabase host detected. Connection validity will be verified by Spring Boot startup."
 }
 
 wait_for_ml() {
-  local retries=30
+  local retries=120
   local i
   for ((i=1; i<=retries; i++)); do
     if curl -fsS "http://127.0.0.1:5000/health" >/dev/null 2>&1; then
@@ -198,6 +202,7 @@ main() {
   local mvn_cmd
   mvn_cmd="$(pick_maven_cmd)"
 
+  load_env_files
   load_db_config
   ensure_database_ready
   start_ml_if_needed

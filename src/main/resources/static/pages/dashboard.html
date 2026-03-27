@@ -72,12 +72,18 @@
 
   <!-- DASHBOARD -->
   <div class="section active" id="tab-dashboard">
+    <div class="panel" id="read-only-banner" style="display:none; margin-bottom:16px; border-color:rgba(255,215,64,0.35);">
+      <div class="panel-body read-only-banner">ANALYST ACCESS IS READ-ONLY. LIVE MONITORING AND EXPORTS REMAIN AVAILABLE.</div>
+    </div>
     <div class="page-header">
       <div>
         <div class="page-title">COMMAND CENTER</div>
         <div class="page-subtitle">// REAL-TIME FRAUD MONITORING — ENGINE</div>
       </div>
-      <button class="btn btn-primary" onclick="refreshAll()">↺ REFRESH</button>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-ghost" id="auto-generation-toggle-btn" data-requires-write="true" onclick="toggleBackgroundGeneration()">STOP AUTO</button>
+        <button class="btn btn-primary" onclick="refreshAll()">↺ REFRESH</button>
+      </div>
     </div>
 
     <!-- Stats -->
@@ -109,16 +115,6 @@
       </div>
     </div>
 
-    <!-- Generate bar -->
-    <div class="gen-bar">
-      <span class="gen-label">Auto Generate</span>
-      <input type="number" class="gen-count" id="gen-count" value="10" min="1" max="500">
-      <button class="btn btn-primary" id="gen-btn" onclick="generateBatch()">▶ RUN</button>
-      <button class="btn btn-ghost" onclick="generateOne()">+ ONE</button>
-      <div class="gen-progress" id="gen-progress"><div class="gen-progress-fill" id="gen-fill"></div></div>
-      <span class="gen-status" id="gen-status"></span>
-    </div>
-
     <div class="grid-65-35">
       <!-- Live Feed -->
       <div class="panel">
@@ -129,7 +125,7 @@
         <div class="feed" id="live-feed">
           <div class="empty-state">
             <div class="empty-icon">◈</div>
-            <div class="empty-text">No transactions yet. Generate or submit one.</div>
+            <div class="empty-text">No transactions yet. Auto generation is running in background.</div>
           </div>
         </div>
       </div>
@@ -147,6 +143,7 @@
       </div>
     </div>
   </div>
+
 </div><!-- /main -->
 <!-- MODAL -->
 <div class="modal-overlay" id="modal" onclick="closeModal(event)">

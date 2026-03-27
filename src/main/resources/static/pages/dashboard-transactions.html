@@ -77,7 +77,100 @@
         <div class="page-title">TRANSACTION LOG</div>
         <div class="page-subtitle">// ALL PROCESSED TRANSACTIONS</div>
       </div>
-      <button class="btn btn-primary" onclick="loadTransactions()">↺ REFRESH</button>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn btn-ghost" type="button" onclick="toggleAdvancedFilters()">FILTERS</button>
+        <button class="btn btn-ghost" type="button" onclick="exportFilteredTransactions()">EXPORT CSV</button>
+        <button class="btn btn-primary" onclick="loadTransactions()">↺ REFRESH</button>
+      </div>
+    </div>
+
+    <div class="panel advanced-filter-panel" id="advanced-filters-panel" style="display:none; margin-bottom:16px;">
+      <div class="panel-header">
+        <div class="panel-title"><div class="panel-title-dot"></div> ADVANCED FILTERS</div>
+      </div>
+      <div class="panel-body">
+        <div class="form-grid advanced-filter-grid">
+          <div class="form-group">
+            <label class="form-label">Search</label>
+            <input class="form-input" id="filter-search" type="text" placeholder="Name, txn id, merchant, location">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Account</label>
+            <input class="form-input" id="filter-account" type="text" placeholder="Sender or receiver account">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-select" id="filter-status">
+              <option value="all">All</option>
+              <option value="fraud">Fraud</option>
+              <option value="non_fraud">Non-fraud</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date From</label>
+            <input class="form-input" id="filter-date-from" type="date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date To</label>
+            <input class="form-input" id="filter-date-to" type="date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Risk Level</label>
+            <select class="form-select" id="filter-risk-level">
+              <option value="all">All</option>
+              <option value="NORMAL">NORMAL</option>
+              <option value="MEDIUM">MEDIUM</option>
+              <option value="HIGH">HIGH</option>
+              <option value="CRITICAL">CRITICAL</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Amount Min</label>
+            <input class="form-input" id="filter-amount-min" type="number" min="0" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Amount Max</label>
+            <input class="form-input" id="filter-amount-max" type="number" min="0" placeholder="500000">
+          </div>
+          <div class="form-group">
+            <label class="form-label">IP Risk Tag</label>
+            <select class="form-select" id="filter-ip-risk-tag">
+              <option value="all">All</option>
+              <option value="CLEAN">CLEAN</option>
+              <option value="VPN">VPN</option>
+              <option value="PROXY">PROXY</option>
+              <option value="TOR">TOR</option>
+              <option value="DATACENTER">DATACENTER</option>
+            </select>
+          </div>
+          <div class="form-group span-3">
+            <label class="form-label">Fraud Type / Rule</label>
+            <select class="form-select" id="filter-fraud-type">
+              <option value="all">All</option>
+              <option value="r01">R01 - High Amount</option>
+              <option value="r02">R02 - Odd Hours</option>
+              <option value="r03">R03 - Balance Drain</option>
+              <option value="r04">R04 - Rapid Fire</option>
+              <option value="r05">R05 - Merchant Risk</option>
+              <option value="r06">R06 - Location Jump</option>
+              <option value="r07">R07 - New Device</option>
+              <option value="r08">R08 - IP Risk</option>
+              <option value="r09">R09 - International</option>
+              <option value="r10">R10 - New Receiver</option>
+              <option value="r11">R11 - Amount Spike</option>
+              <option value="r12">R12 - New Account</option>
+              <option value="r13">R13 - High Volume</option>
+              <option value="r14">R14 - Round Amount</option>
+              <option value="r-ml">R-ML - ML Override</option>
+            </select>
+          </div>
+        </div>
+        <div class="advanced-filter-actions">
+          <button class="btn btn-primary" type="button" onclick="applyAdvancedFilters()">APPLY FILTERS</button>
+          <button class="btn btn-ghost" type="button" onclick="clearAdvancedFilters()">CLEAR</button>
+          <span class="advanced-filter-summary" id="advanced-filter-summary">Showing latest transactions</span>
+        </div>
+      </div>
     </div>
 
     <div class="panel">
@@ -87,7 +180,7 @@
         <button class="filter-btn f-critical" data-filter="CRITICAL" onclick="filterTxns(this,'CRITICAL')">CRITICAL</button>
         <button class="filter-btn f-high" data-filter="HIGH" onclick="filterTxns(this,'HIGH')">HIGH</button>
         <button class="filter-btn f-medium" data-filter="MEDIUM" onclick="filterTxns(this,'MEDIUM')">MEDIUM</button>
-        <button class="filter-btn" data-filter="LOW" onclick="filterTxns(this,'LOW')">LOW</button>
+        <button class="filter-btn" data-filter="NORMAL" onclick="filterTxns(this,'NORMAL')">NORMAL</button>
         <button class="filter-btn" data-filter="fraud" onclick="filterTxns(this,'fraud')">FRAUD ONLY</button>
       </div>
       <div class="table-wrap">
@@ -110,6 +203,7 @@
           </tbody>
         </table>
       </div>
+      <div class="table-footer-meta" id="txn-results-meta">Ready</div>
     </div>
   </div>
 </div><!-- /main -->

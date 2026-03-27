@@ -17,11 +17,17 @@
     <div class="hero-content">
       <div class="logo-hex"></div>
       <h1 class="title">FRAUDSHIELD</h1>
-      <p class="subtitle">AI-Powered Digital Banking Fraud Detection & Simulation Engine</p>
+      <p class="subtitle">Real-time fraud detection, ML insights, audit tracking, and simulation in one platform</p>
+      <div class="hero-role-hints">
+        <span class="role-pill">SUPERADMIN: GOVERNANCE</span>
+        <span class="role-pill">ADMIN: OPERATIONS</span>
+        <span class="role-pill">ANALYST: READ + EXPORT</span>
+      </div>
       
       <div class="hero-buttons">
-        <a href="/pages/dashboard.html" class="btn btn-cyan">ENTER DASHBOARD</a>
-        <a href="/pages/admin-login.html" class="btn btn-ghost">ADMIN LOGIN</a>
+        <a href="/pages/dashboard.html" class="btn btn-cyan" id="hero-dashboard-btn">ENTER DASHBOARD</a>
+        <a href="/pages/login.html" class="btn btn-ghost" id="hero-login-btn">LOGIN</a>
+        <a href="/pages/superadmin-setup.html" class="btn btn-ghost" id="hero-setup-btn" style="display:none;">SUPERADMIN SETUP</a>
       </div>
 
       <div class="stats-container">
@@ -81,7 +87,30 @@
     </div>
   </section>
 
-  <!-- SECTION 3: 14 ACTIVE RULES -->
+  <!-- SECTION 3: PLATFORM MODULES -->
+  <section class="modules">
+    <h2 class="section-title">PLATFORM MODULES</h2>
+    <div class="module-grid">
+      <a class="module-card" href="/pages/dashboard.html">
+        <h4>Command Center</h4>
+        <p>Live transaction feed, fraud rate, and risk telemetry.</p>
+      </a>
+      <a class="module-card" href="/pages/dashboard-analytics.html">
+        <h4>Analytics</h4>
+        <p>Trend charts, risk distribution, and rule frequency analysis.</p>
+      </a>
+      <a class="module-card" href="/pages/dashboard-system.html">
+        <h4>System Health</h4>
+        <p>Service status, API activity, and ML model diagnostics.</p>
+      </a>
+      <a class="module-card" href="/pages/dashboard-audit.html">
+        <h4>Audit Trail</h4>
+        <p>User actions, filters, exports, and compliance visibility.</p>
+      </a>
+    </div>
+  </section>
+
+  <!-- SECTION 4: 14 ACTIVE RULES -->
   <section class="rules">
     <h2 class="section-title">14 ACTIVE DETECTION RULES</h2>
     <div class="rules-grid">
@@ -173,7 +202,7 @@
     </div>
   </section>
 
-  <!-- SECTION 4: TECH STACK -->
+  <!-- SECTION 5: TECH STACK -->
   <section class="tech">
     <h2 class="section-title">BUILT WITH</h2>
     <div class="tech-container">
@@ -204,15 +233,18 @@
     </div>
   </section>
 
-  <!-- SECTION 5: FOOTER -->
+  <!-- SECTION 6: FOOTER -->
   <footer class="footer">
     <div class="foot-title">FRAUDSHIELD</div>
-    <div class="foot-desc">Built for internship demonstration — Infosys Project</div>
+    <div class="foot-desc">Built for internship demonstration - Infosys Project</div>
     <div class="foot-desc">Licensed under the MIT License.</div>
     <div class="foot-links">
       <a href="/pages/dashboard.html">Dashboard</a>
-      <a href="/pages/admin-login.html">Login</a>
+      <a href="/pages/login.html" id="footer-login-link">Login</a>
+      <a href="/pages/superadmin-setup.html" id="footer-setup-link" style="display:none;">Superadmin Setup</a>
+      <a href="https://github.com/Infosys-SpringBoard-Internship-Project/Java-Based-Digital-Banking-Fraud-Detection-Simulation-Engine" target="_blank" rel="noopener noreferrer">GitHub</a>
     </div>
+    <div class="foot-desc" style="margin-top:10px;">Project repository: <a href="https://github.com/Infosys-SpringBoard-Internship-Project/Java-Based-Digital-Banking-Fraud-Detection-Simulation-Engine" target="_blank" rel="noopener noreferrer">Infosys-SpringBoard-Internship-Project/Java-Based-Digital-Banking-Fraud-Detection-Simulation-Engine</a></div>
   </footer>
 
   <!-- ANIMATION SCRIPTS -->
