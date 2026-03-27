@@ -26,6 +26,7 @@ import java.util.Map;
 public class EmailAlertService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailAlertService.class);
+    private static final int EMAIL_SEND_ATTEMPTS = 3;
 
     @Autowired
     private JavaMailSender mailSender;
@@ -71,18 +72,7 @@ public class EmailAlertService {
 
             String fromAddress = senderName + " <" + senderAddress + ">";
             for (AdminUser admin : eligibleRecipients) {
-                try {
-                    MimeMessage message = mailSender.createMimeMessage();
-                    MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-                    helper.setFrom(fromAddress);
-                    helper.setTo(admin.getEmail());
-                    helper.setSubject(subject + " [" + admin.getRole().name() + "]");
-                    helper.setText(buildRoleAwareEmailHtml(admin, tx), true);
-                    mailSender.send(message);
-                    log.info("Alert sent to {} for txn {}", admin.getEmail(), safe(tx.transactionId));
-                } catch (Exception e) {
-                    log.error("Failed to send alert to {}: {}", admin.getEmail(), e.getMessage());
-                }
+                sendFraudAlertWithRetry(admin, subject, tx, fromAddress);
             }
 
         } catch (Exception e) {
@@ -355,6 +345,43 @@ public class EmailAlertService {
 
     private String safe(String value) {
         return value == null ? "N/A" : value;
+    }
+
+    private void sendFraudAlertWithRetry(AdminUser admin, String subject, TransactionModel tx, String fromAddress) {
+        for (int attempt = 1; attempt <= EMAIL_SEND_ATTEMPTS; attempt++) {
+            try {
+                MimeMessage message = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+                helper.setFrom(fromAddress);
+                helper.setTo(admin.getEmail());
+                helper.setSubject(subject + " [" + admin.getRole().name() + "]");
+                helper.setText(buildRoleAwareEmailHtml(admin, tx), true);
+                mailSender.send(message);
+
+                if (attempt > 1) {
+                    log.info("Alert sent to {} for txn {} on retry attempt {}",
+                            admin.getEmail(), safe(tx.transactionId), attempt);
+                } else {
+                    log.info("Alert sent to {} for txn {}", admin.getEmail(), safe(tx.transactionId));
+                }
+                return;
+            } catch (Exception e) {
+                if (attempt == EMAIL_SEND_ATTEMPTS) {
+                    log.error("Failed to send alert to {} after {} attempts. from='{}', reason='{}'",
+                            admin.getEmail(), EMAIL_SEND_ATTEMPTS, fromAddress, e.getMessage(), e);
+                    return;
+                }
+
+                log.warn("Alert email attempt {}/{} failed for {} (txn {}): {}",
+                        attempt, EMAIL_SEND_ATTEMPTS, admin.getEmail(), safe(tx.transactionId), e.getMessage());
+                try {
+                    Thread.sleep(750L * attempt);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+            }
+        }
     }
 
     private String formatAmount(double amount) {
