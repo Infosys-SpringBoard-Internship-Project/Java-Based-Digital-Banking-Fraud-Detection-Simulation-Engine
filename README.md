@@ -14,6 +14,7 @@ AI-powered digital banking fraud detection and simulation engine built with Spri
 ## Table of contents
 
 - [Overview](#overview)
+- [Live Links](#live-links)
 - [Key Features](#key-features)
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
@@ -35,6 +36,12 @@ FraudShield evaluates banking transactions using a hybrid approach:
 - ML inference service for fraud probability scoring
 
 The platform provides dashboard monitoring, alerting, auditing, simulation, and export workflows for fraud operations.
+
+## Live Links
+
+- App: `https://fraudshield-app.onrender.com`
+- ML Service: `https://fraudshield-ml-pwd9.onrender.com`
+- ML Health: `https://fraudshield-ml-pwd9.onrender.com/health`
 
 ## Key Features
 
