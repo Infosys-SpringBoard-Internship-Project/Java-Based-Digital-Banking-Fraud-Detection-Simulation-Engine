@@ -33,6 +33,7 @@ public class AuthService {
     }
 
     private static final int SESSION_HOURS = 8;
+    private static final int EMAIL_SEND_ATTEMPTS = 3;
     private static final String TEMP_PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789@#$%!";
     private static final int TEMP_PASSWORD_LENGTH = 12;
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
@@ -234,22 +235,41 @@ public class AuthService {
     }
 
     private boolean sendTemporaryPasswordEmail(AdminUser admin, String temporaryPassword) {
-        try {
-            String roleLabel = admin.getRole() == null ? "USER" : admin.getRole().name();
-            String htmlBody = emailAlertService.buildForgotPasswordEmailHtml(admin, temporaryPassword);
+        String roleLabel = admin.getRole() == null ? "USER" : admin.getRole().name();
+        String htmlBody = emailAlertService.buildForgotPasswordEmailHtml(admin, temporaryPassword);
 
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(mailFrom);
-            helper.setTo(admin.getEmail());
-            helper.setSubject("FraudShield " + roleLabel + " Temporary Password");
-            helper.setText(htmlBody, true);
-            mailSender.send(message);
-            return true;
-        } catch (Exception ex) {
-            log.error("Failed to send password reset email to {}", admin.getEmail(), ex);
-            return false;
+        for (int attempt = 1; attempt <= EMAIL_SEND_ATTEMPTS; attempt++) {
+            try {
+                MimeMessage message = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+                helper.setFrom(mailFrom);
+                helper.setTo(admin.getEmail());
+                helper.setSubject("FraudShield " + roleLabel + " Temporary Password");
+                helper.setText(htmlBody, true);
+                mailSender.send(message);
+
+                if (attempt > 1) {
+                    log.info("Password reset email sent to {} on retry attempt {}", admin.getEmail(), attempt);
+                }
+                return true;
+            } catch (Exception ex) {
+                if (attempt == EMAIL_SEND_ATTEMPTS) {
+                    log.error("Failed to send password reset email to {} after {} attempts. mailFrom='{}', reason='{}'",
+                            admin.getEmail(), EMAIL_SEND_ATTEMPTS, mailFrom, ex.getMessage(), ex);
+                    return false;
+                }
+
+                log.warn("Password reset email attempt {}/{} failed for {}: {}",
+                        attempt, EMAIL_SEND_ATTEMPTS, admin.getEmail(), ex.getMessage());
+                try {
+                    Thread.sleep(750L * attempt);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
+            }
         }
+
+        return false;
     }
 
     // ==================== USER MANAGEMENT METHODS ====================

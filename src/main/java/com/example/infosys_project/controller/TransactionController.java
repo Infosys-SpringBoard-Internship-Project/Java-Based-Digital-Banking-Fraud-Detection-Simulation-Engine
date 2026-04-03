@@ -4,7 +4,6 @@ import com.example.infosys_project.dto.ValidationResponse;
 import com.example.infosys_project.generator.TransactionGenerator;
 import com.example.infosys_project.model.AdminUser;
 import com.example.infosys_project.model.TransactionModel;
-import com.example.infosys_project.model.UserRole;
 import com.example.infosys_project.repository.TransactionRepository;
 import com.example.infosys_project.security.DataMaskingUtil;
 import com.example.infosys_project.service.AuditService;
@@ -18,8 +17,6 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
-import java.util.stream.Collectors;
-
 @RestController
 @RequestMapping("/transaction")
 @CrossOrigin(origins = "*")
@@ -37,32 +34,27 @@ public class TransactionController {
     @Autowired
     private AuditService auditService;
 
-    // Generate and return a random transaction (no save, no fraud check)
     @GetMapping("/generate")
     public TransactionModel generate() {
         return TransactionGenerator.generateTransaction();
     }
 
-    // Full pipeline: Generate → Validate → Fraud Check → ML → Save
     @GetMapping("/autoValidate")
     public ValidationResponse autoValidate() {
         return transactionService.processTransaction(
                 TransactionGenerator.generateTransaction());
     }
 
-    // Redirect to HTML form
     @GetMapping("/validate")
     public void validateForm(HttpServletResponse response) throws IOException {
         response.sendRedirect("/pages/dashboard.html");
     }
 
-    // Redirect shortcut for dashboard view
     @GetMapping("/dashboard")
     public void dashboard(HttpServletResponse response) throws IOException {
         response.sendRedirect("/pages/dashboard.html");
     }
 
-    // Manual POST: Submit your own JSON → full pipeline → save
     @PostMapping("/validate")
     public ValidationResponse validate(@RequestBody TransactionModel tx,
                                        @RequestHeader(value = "Authorization", required = false) String authorization,
@@ -76,13 +68,10 @@ public class TransactionController {
         return response;
     }
 
-    // Get all transactions
     @GetMapping("/all")
     public List<TransactionModel> getAll(
             @RequestHeader(value = "Authorization", required = false) String authorization) {
-        List<TransactionModel> transactions = transactionRepository.findAll().stream()
-                .sorted(Comparator.comparing((TransactionModel tx) -> tx.timestamp, Comparator.nullsLast(Comparator.naturalOrder())).reversed())
-                .collect(Collectors.toList());
+        List<TransactionModel> transactions = transactionRepository.findAllByOrderByTimestampDesc();
         AdminUser actor = resolveActor(authorization);
         if (actor != null && DataMaskingUtil.shouldMaskData(actor.getRole())) {
             return DataMaskingUtil.maskTransactions(transactions);
@@ -120,7 +109,6 @@ public class TransactionController {
                 size
         );
 
-        // Apply data masking for ANALYST role
         AdminUser actor = resolveActor(authorization);
         if (actor != null && DataMaskingUtil.shouldMaskData(actor.getRole())) {
             @SuppressWarnings("unchecked")
@@ -133,7 +121,6 @@ public class TransactionController {
         return result;
     }
 
-    // Get single transaction by UUID
     @GetMapping("/{id}")
     public TransactionModel getById(
             @PathVariable String id,
@@ -165,13 +152,10 @@ public class TransactionController {
         return detail;
     }
 
-    // Get only fraud transactions
     @GetMapping("/frauds")
     public List<TransactionModel> getFrauds(
             @RequestHeader(value = "Authorization", required = false) String authorization) {
-        List<TransactionModel> frauds = transactionRepository.findAll().stream()
-                .filter(t -> t.isFraud)
-                .collect(Collectors.toList());
+        List<TransactionModel> frauds = transactionRepository.findByIsFraudTrue();
         AdminUser actor = resolveActor(authorization);
         if (actor != null && DataMaskingUtil.shouldMaskData(actor.getRole())) {
             return DataMaskingUtil.maskTransactions(frauds);
@@ -179,23 +163,17 @@ public class TransactionController {
         return frauds;
     }
 
-    // Filter by risk level: NORMAL | MEDIUM | HIGH | CRITICAL
     @GetMapping("/by-risk/{level}")
     public List<TransactionModel> getByRiskLevel(
             @PathVariable String level,
             @RequestHeader(value = "Authorization", required = false) String authorization) {
         String normalized = level == null ? "" : level.trim().toUpperCase();
-        List<TransactionModel> transactions = transactionRepository.findAll().stream()
-                .filter(t -> {
-                    if (t.riskLevel == null) {
-                        return "NORMAL".equals(normalized);
-                    }
-                    if ("NORMAL".equals(normalized)) {
-                        return "NORMAL".equalsIgnoreCase(t.riskLevel) || "LOW".equalsIgnoreCase(t.riskLevel);
-                    }
-                    return t.riskLevel.equalsIgnoreCase(normalized);
-                })
-                .collect(Collectors.toList());
+        List<TransactionModel> transactions;
+        if ("NORMAL".equals(normalized)) {
+            transactions = transactionRepository.findByRiskLevelInIgnoreCase(Arrays.asList("NORMAL", "LOW"));
+        } else {
+            transactions = transactionRepository.findByRiskLevelIgnoreCase(normalized);
+        }
         AdminUser actor = resolveActor(authorization);
         if (actor != null && DataMaskingUtil.shouldMaskData(actor.getRole())) {
             return DataMaskingUtil.maskTransactions(transactions);
@@ -203,14 +181,11 @@ public class TransactionController {
         return transactions;
     }
 
-    // Filter by IP risk tag: CLEAN | VPN | PROXY | TOR | DATACENTER
     @GetMapping("/by-ip-tag/{tag}")
     public List<TransactionModel> getByIpTag(
             @PathVariable String tag,
             @RequestHeader(value = "Authorization", required = false) String authorization) {
-        List<TransactionModel> transactions = transactionRepository.findAll().stream()
-                .filter(t -> tag.equalsIgnoreCase(t.ipRiskTag))
-                .collect(Collectors.toList());
+        List<TransactionModel> transactions = transactionRepository.findByIpRiskTagIgnoreCase(tag);
         AdminUser actor = resolveActor(authorization);
         if (actor != null && DataMaskingUtil.shouldMaskData(actor.getRole())) {
             return DataMaskingUtil.maskTransactions(transactions);
@@ -218,32 +193,34 @@ public class TransactionController {
         return transactions;
     }
 
-    // Summary metrics from one DB fetch, computed in memory.
     @GetMapping("/summary")
     public Map<String, Object> getSummary() {
-        List<TransactionModel> all = transactionRepository.findAll();
+        long total    = transactionRepository.count();
+        long fraud    = transactionRepository.countByIsFraudTrue();
+        long critical = transactionRepository.countByRiskLevelIgnoreCase("CRITICAL");
+        long high     = transactionRepository.countByRiskLevelIgnoreCase("HIGH");
+        long medium   = transactionRepository.countByRiskLevelIgnoreCase("MEDIUM");
+        long normal   = transactionRepository.countByRiskLevelInIgnoreCase(Arrays.asList("NORMAL", "LOW"));
+        long vpn      = transactionRepository.countByIsVpnOrProxyTrue();
+        long tor      = transactionRepository.countByIpRiskTagIgnoreCase("TOR");
+        long ipMismatch = transactionRepository.countByIpMatchesLocationFalse();
 
-        long total    = all.size();
-        long fraud    = all.stream().filter(t -> t.isFraud).count();
-        long critical = all.stream().filter(t -> "CRITICAL".equals(t.riskLevel)).count();
-        long high     = all.stream().filter(t -> "HIGH".equals(t.riskLevel)).count();
-        long medium   = all.stream().filter(t -> "MEDIUM".equals(t.riskLevel)).count();
-        long normal   = all.stream().filter(t -> "NORMAL".equalsIgnoreCase(t.riskLevel) || "LOW".equalsIgnoreCase(t.riskLevel)).count();
-        long vpn      = all.stream().filter(t -> t.isVpnOrProxy).count();
-        long tor      = all.stream().filter(t -> "TOR".equalsIgnoreCase(t.ipRiskTag)).count();
-        long ipMismatch = all.stream().filter(t -> !t.ipMatchesLocation).count();
+        Double totalAmtObj  = transactionRepository.sumAmount();
+        double totalAmt = totalAmtObj != null ? totalAmtObj : 0.0;
 
-        double totalAmt  = all.stream().mapToDouble(t -> t.amount).sum();
-        double fraudAmt  = all.stream().filter(t -> t.isFraud).mapToDouble(t -> t.amount).sum();
-        double avgRisk   = all.stream().mapToDouble(t -> t.riskScore).average().orElse(0.0);
+        Double fraudAmtObj  = transactionRepository.sumAmountByIsFraudTrue();
+        double fraudAmt = fraudAmtObj != null ? fraudAmtObj : 0.0;
+
+        Double avgRiskObj   = transactionRepository.avgRiskScore();
+        double avgRisk = avgRiskObj != null ? avgRiskObj : 0.0;
+
         double fraudRate = total > 0
                 ? Math.round(fraud * 10000.0 / total) / 100.0 : 0.0;
 
-        // Rule breakdown: count rule codes from fraudReason strings.
         Map<String, Long> ruleCounts = new LinkedHashMap<>();
-        for (TransactionModel t : all) {
-            if (t.fraudReason == null || t.fraudReason.equals("None")) continue;
-            for (String part : t.fraudReason.split("\\|")) {
+        List<String> reasons = transactionRepository.findAllFraudReasons();
+        for (String reason : reasons) {
+            for (String part : reason.split("\\|")) {
                 String code = part.trim().split(":")[0];
                 ruleCounts.merge(code, 1L, Long::sum);
             }
@@ -272,7 +249,6 @@ public class TransactionController {
         return transactionService.getAnalyticsData(days);
     }
 
-    // Health info for dashboard status badge
     @GetMapping("/system-status")
     public Map<String, Object> getSystemStatus() {
         Map<String, Object> status = new LinkedHashMap<>();
@@ -282,7 +258,6 @@ public class TransactionController {
         return status;
     }
 
-    // Export all transactions as CSV for ML training
     @GetMapping("/export-csv")
     public void exportCsv(
             @RequestHeader(value = "Authorization", required = false) String authorization,
@@ -293,7 +268,6 @@ public class TransactionController {
 
         List<TransactionModel> all = transactionRepository.findAll();
 
-        // Apply data masking for ANALYST role
         AdminUser actor = resolveActor(authorization);
         if (actor != null && DataMaskingUtil.shouldMaskData(actor.getRole())) {
             all = DataMaskingUtil.maskTransactions(all);
@@ -353,7 +327,6 @@ public class TransactionController {
         @SuppressWarnings("unchecked")
         List<TransactionModel> items = (List<TransactionModel>) result.getOrDefault("items", Collections.emptyList());
 
-        // Apply data masking for ANALYST role
         AdminUser actor = resolveActor(authorization);
         if (actor != null && DataMaskingUtil.shouldMaskData(actor.getRole())) {
             items = DataMaskingUtil.maskTransactions(items);

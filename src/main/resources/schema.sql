@@ -1,3 +1,6 @@
+-- Reference schema used for documentation and local inspection.
+-- Runtime schema changes are managed by Flyway migrations under db/migration.
+
 CREATE TABLE IF NOT EXISTS admin_users (
     id BIGSERIAL PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
@@ -53,7 +56,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     is_fraud BOOLEAN NOT NULL DEFAULT FALSE,
     fraud_reason VARCHAR(1000),
     risk_score DOUBLE PRECISION NOT NULL DEFAULT 0,
-    risk_level VARCHAR(20) NOT NULL DEFAULT 'LOW',
+    risk_level VARCHAR(20) NOT NULL DEFAULT 'NORMAL',
     ml_fraud_probability DOUBLE PRECISION NOT NULL DEFAULT 0
 );
 

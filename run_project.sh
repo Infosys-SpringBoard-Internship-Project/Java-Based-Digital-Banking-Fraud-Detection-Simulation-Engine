@@ -4,7 +4,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ML_DIR="${ROOT_DIR}/ml"
 ML_LOG="${ML_DIR}/ml_api.log"
-APP_PROPS="${ROOT_DIR}/src/main/resources/application.properties"
+ENV_FILE="${ROOT_DIR}/.env.local"
+ENV_TEMPLATE="${ROOT_DIR}/.env.example"
+SPRING_LOG="${ROOT_DIR}/project.log"
 ML_STARTED_BY_SCRIPT=0
 ML_PID=""
 SPRING_PORT=8080
@@ -14,20 +16,7 @@ DB_PASSWORD=""
 DB_HOST=""
 DB_PORT="5432"
 DB_NAME=""
-
-load_env_files() {
-  local env_file
-  for env_file in "${ROOT_DIR}/.env.local" "${ROOT_DIR}/.env"; do
-    if [[ -f "${env_file}" ]]; then
-      set -a
-      # shellcheck disable=SC1090
-      source "${env_file}"
-      set +a
-      echo "[RUN] Loaded environment from $(basename "${env_file}")"
-      return
-    fi
-  done
-}
+ML_HEALTH_CHECK_URL=""
 
 cleanup() {
   if [[ "${ML_STARTED_BY_SCRIPT}" -eq 1 && -n "${ML_PID}" ]]; then
@@ -37,6 +26,84 @@ cleanup() {
 }
 
 trap cleanup EXIT INT TERM
+
+trim() {
+  local value="$1"
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
+  printf '%s' "${value}"
+}
+
+check_command() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+ensure_env_file() {
+  if [[ -f "${ENV_FILE}" ]]; then
+    return
+  fi
+
+  if [[ -f "${ENV_TEMPLATE}" ]]; then
+    cp "${ENV_TEMPLATE}" "${ENV_FILE}"
+    echo "[RUN] Created .env.local from .env.example"
+    return
+  fi
+
+  cat > "${ENV_FILE}" <<'EOF'
+SPRING_DATASOURCE_URL=jdbc:postgresql://127.0.0.1:5432/fraudshield
+SPRING_DATASOURCE_USERNAME=postgres
+SPRING_DATASOURCE_PASSWORD=postgres
+ML_API_URL=http://127.0.0.1:5000/predict
+ML_HEALTH_URL=http://127.0.0.1:5000/health
+EOF
+  echo "[RUN] Created .env.local with local defaults"
+}
+
+load_env_file() {
+  ensure_env_file
+
+  # shellcheck disable=SC2162
+  while IFS= read line || [[ -n "${line}" ]]; do
+    line="$(trim "${line}")"
+    if [[ -z "${line}" || "${line}" == \#* ]]; then
+      continue
+    fi
+    if [[ "${line}" != *=* ]]; then
+      continue
+    fi
+
+    local key="${line%%=*}"
+    local value="${line#*=}"
+    key="$(trim "${key}")"
+    value="$(trim "${value}")"
+    value="${value%\"}"
+    value="${value#\"}"
+
+    if [[ -n "${key}" ]]; then
+      export "${key}=${value}"
+    fi
+  done < "${ENV_FILE}"
+
+  echo "[RUN] Loaded environment from .env.local"
+}
+
+check_prerequisites() {
+  local missing=0
+
+  if ! check_command python3; then
+    echo "[RUN] Missing required command: python3" >&2
+    missing=1
+  fi
+
+  if ! check_command curl; then
+    echo "[RUN] Missing required command: curl" >&2
+    missing=1
+  fi
+
+  if [[ "${missing}" -ne 0 ]]; then
+    exit 1
+  fi
+}
 
 pick_maven_cmd() {
   if [[ -x "${ROOT_DIR}/mvnw" && -f "${ROOT_DIR}/.mvn/wrapper/maven-wrapper.properties" ]]; then
@@ -53,71 +120,25 @@ pick_maven_cmd() {
   exit 1
 }
 
-trim() {
-  local value="$1"
-  value="${value#"${value%%[![:space:]]*}"}"
-  value="${value%"${value##*[![:space:]]}"}"
-  printf '%s' "${value}"
-}
-
-read_property() {
-  local key="$1"
-  local line
-  line="$(grep -E "^${key}=" "${APP_PROPS}" | tail -n 1 || true)"
-  if [[ -z "${line}" ]]; then
-    return 1
-  fi
-  trim "${line#*=}"
-}
-
-resolve_placeholder_default() {
-  local value="$1"
-  if [[ "${value}" =~ ^\$\{[^:}]+:(.*)\}$ ]]; then
-    printf '%s' "${BASH_REMATCH[1]}"
-    return
-  fi
-  printf '%s' "${value}"
-}
-
 load_db_config() {
-  if [[ ! -f "${APP_PROPS}" ]]; then
-    echo "[RUN] Missing application.properties at ${APP_PROPS}" >&2
-    exit 1
-  fi
-
-  DB_URL="${SPRING_DATASOURCE_URL:-}"
-  DB_USER="${SPRING_DATASOURCE_USERNAME:-}"
-  DB_PASSWORD="${SPRING_DATASOURCE_PASSWORD:-}"
-
-  if [[ -z "${DB_URL}" ]]; then
-    DB_URL="$(read_property "spring.datasource.url" || true)"
-  fi
-  if [[ -z "${DB_USER}" ]]; then
-    DB_USER="$(read_property "spring.datasource.username" || true)"
-  fi
-  if [[ -z "${DB_PASSWORD}" ]]; then
-    DB_PASSWORD="$(read_property "spring.datasource.password" || true)"
-  fi
-
-  DB_URL="$(resolve_placeholder_default "${DB_URL}")"
-  DB_USER="$(resolve_placeholder_default "${DB_USER}")"
-  DB_PASSWORD="$(resolve_placeholder_default "${DB_PASSWORD}")"
+  DB_URL="${SPRING_DATASOURCE_URL:-jdbc:postgresql://127.0.0.1:5432/fraudshield}"
+  DB_USER="${SPRING_DATASOURCE_USERNAME:-postgres}"
+  DB_PASSWORD="${SPRING_DATASOURCE_PASSWORD:-postgres}"
+  ML_HEALTH_CHECK_URL="${ML_HEALTH_URL:-http://127.0.0.1:5000/health}"
 
   if [[ -z "${DB_URL}" || -z "${DB_USER}" || -z "${DB_PASSWORD}" ]]; then
     echo "[RUN] Database settings are incomplete. Set SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME and SPRING_DATASOURCE_PASSWORD." >&2
     exit 1
   fi
 
-  if [[ "${DB_PASSWORD}" == "your_db_password" ]]; then
-    echo "[RUN] Replace SPRING_DATASOURCE_PASSWORD with your Supabase DB password before starting the project." >&2
+  if [[ "${DB_PASSWORD}" == "your_password" ]]; then
+    echo "[RUN] Replace SPRING_DATASOURCE_PASSWORD in .env.local before starting the project." >&2
     exit 1
   fi
 
-  local parsed_url="${DB_URL}"
-
-  if [[ ! "${parsed_url}" =~ ^jdbc:postgresql://([^/:]+)(:([0-9]+))?/([^?]+)(\?.*)?$ ]]; then
+  if [[ ! "${DB_URL}" =~ ^jdbc:postgresql://([^/:?]+)(:([0-9]+))?/([^?]+) ]]; then
     echo "[RUN] Unsupported spring.datasource.url format: ${DB_URL}" >&2
-    echo "[RUN] Expected format: jdbc:postgresql://host:port/database" >&2
+    echo "[RUN] Expected format: jdbc:postgresql://host:port/database?params" >&2
     exit 1
   fi
 
@@ -126,25 +147,53 @@ load_db_config() {
     DB_PORT="${BASH_REMATCH[3]}"
   fi
   DB_NAME="${BASH_REMATCH[4]}"
+  DB_NAME="${DB_NAME%%\?*}"
 }
 
 ensure_database_ready() {
+  local db_exists
+
   echo "[RUN] Using database ${DB_NAME} on ${DB_HOST}:${DB_PORT} with user ${DB_USER}"
 
-  if [[ "${DB_HOST}" != *"supabase.co" && "${DB_HOST}" != *"pooler.supabase.com" ]]; then
-    echo "[RUN] This launcher is now Supabase-only." >&2
-    echo "[RUN] Set SPRING_DATASOURCE_URL to your Supabase host (db.<project-ref>.supabase.co or pooler.supabase.com)." >&2
+  if check_command pg_isready; then
+    if ! PGPASSWORD="${DB_PASSWORD}" pg_isready -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" >/dev/null 2>&1; then
+      echo "[RUN] PostgreSQL is not reachable at ${DB_HOST}:${DB_PORT} for user ${DB_USER}." >&2
+      exit 1
+    fi
+  else
+    echo "[RUN] pg_isready is not installed. Skipping PostgreSQL readiness check."
+  fi
+
+  if ! check_command psql; then
+    echo "[RUN] psql is not installed. Skipping database existence check for ${DB_NAME}."
+    return
+  fi
+
+  db_exists="$(PGPASSWORD="${DB_PASSWORD}" psql -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'" 2>/dev/null | tr -d '[:space:]')"
+  if [[ "${db_exists}" == "1" ]]; then
+    echo "[RUN] Database ${DB_NAME} already exists."
+    return
+  fi
+
+  if ! check_command createdb; then
+    echo "[RUN] Database ${DB_NAME} does not exist and createdb is not installed." >&2
+    echo "[RUN] Create the database manually, then rerun." >&2
     exit 1
   fi
 
-  echo "[RUN] Supabase host detected. Connection validity will be verified by Spring Boot startup."
+  echo "[RUN] Creating database ${DB_NAME}..."
+  if ! PGPASSWORD="${DB_PASSWORD}" createdb -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" "${DB_NAME}" >/dev/null 2>&1; then
+    echo "[RUN] Failed to create database ${DB_NAME}. Check credentials and privileges." >&2
+    exit 1
+  fi
 }
 
 wait_for_ml() {
-  local retries=120
+  local health_url="$1"
+  local retries=30
   local i
   for ((i=1; i<=retries; i++)); do
-    if curl -fsS "http://127.0.0.1:5000/health" >/dev/null 2>&1; then
+    if curl -fsS "${health_url}" >/dev/null 2>&1; then
       return 0
     fi
     sleep 1
@@ -179,9 +228,14 @@ pick_spring_port() {
 }
 
 start_ml_if_needed() {
-  if curl -fsS "http://127.0.0.1:5000/health" >/dev/null 2>&1; then
-    echo "[RUN] ML API already running on port 5000. Reusing existing process."
+  if curl -fsS "${ML_HEALTH_CHECK_URL}" >/dev/null 2>&1; then
+    echo "[RUN] ML API is healthy (${ML_HEALTH_CHECK_URL})."
     return
+  fi
+
+  if [[ "${ML_HEALTH_CHECK_URL}" != "http://127.0.0.1:5000/health" && "${ML_HEALTH_CHECK_URL}" != "http://localhost:5000/health" ]]; then
+    echo "[RUN] Remote ML health check failed at ${ML_HEALTH_CHECK_URL}." >&2
+    exit 1
   fi
 
   echo "[RUN] Starting ML API..."
@@ -189,7 +243,7 @@ start_ml_if_needed() {
   ML_PID="$!"
   ML_STARTED_BY_SCRIPT=1
 
-  if ! wait_for_ml; then
+  if ! wait_for_ml "${ML_HEALTH_CHECK_URL}"; then
     echo "[RUN] ML API failed to become healthy. Last log lines:"
     tail -n 40 "${ML_LOG}" || true
     exit 1
@@ -200,9 +254,11 @@ start_ml_if_needed() {
 
 main() {
   local mvn_cmd
+
+  check_prerequisites
   mvn_cmd="$(pick_maven_cmd)"
 
-  load_env_files
+  load_env_file
   load_db_config
   ensure_database_ready
   start_ml_if_needed
@@ -211,8 +267,12 @@ main() {
   echo "[RUN] Starting Spring Boot app with ${mvn_cmd} on port ${SPRING_PORT}"
   echo "[RUN] Home URL: http://localhost:${SPRING_PORT}/pages/index.html"
   echo "[RUN] Dashboard URL: http://localhost:${SPRING_PORT}/pages/dashboard.html"
+  echo "[RUN] Logs: ${SPRING_LOG}"
   cd "${ROOT_DIR}"
-  "${mvn_cmd}" spring-boot:run -Dspring-boot.run.arguments="--server.port=${SPRING_PORT}"
+  SPRING_DATASOURCE_URL="${DB_URL}" \
+  SPRING_DATASOURCE_USERNAME="${DB_USER}" \
+  SPRING_DATASOURCE_PASSWORD="${DB_PASSWORD}" \
+  "${mvn_cmd}" spring-boot:run -Dspring-boot.run.arguments="--server.port=${SPRING_PORT}" > "${SPRING_LOG}" 2>&1
 }
 
 main "$@"
