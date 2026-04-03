@@ -59,7 +59,7 @@ public class TransactionService {
 
     public ValidationResponse processTransaction(TransactionModel tx) {
 
-        // Fill missing system fields for manually submitted transactions.
+        // Fill defaults for manually submitted transactions.
         if (tx.transactionId == null || tx.transactionId.isBlank())
             tx.transactionId = UUID.randomUUID().toString();
         if (tx.utrNumber == null || tx.utrNumber.isBlank())
@@ -74,7 +74,6 @@ public class TransactionService {
         ValidationResponse response = new ValidationResponse();
         response.transaction = tx;
 
-        // Step 1: validate all transaction fields.
         String validationResult = TransactionValidator.validate(tx);
         response.validationResult = validationResult;
 
@@ -85,13 +84,10 @@ public class TransactionService {
             return response;
         }
 
-        // Step 2: run rule-based fraud detection.
         FraudDetector.checkFraud(tx);
 
-        // Step 3: run ML fraud scoring (skip if Flask is unavailable).
         tx.mlFraudProbability = callMlApi(tx);
 
-        // Step 4: upgrade to fraud if ML confidence is high.
         if (tx.mlFraudProbability >= 0.75 && !tx.isFraud) {
             tx.isFraud   = true;
             tx.riskLevel = "HIGH";
@@ -101,7 +97,6 @@ public class TransactionService {
                     ? mlTag : tx.fraudReason + " | " + mlTag;
         }
 
-        // Step 5: save computed transaction.
         transactionRepository.save(tx);
 
         if ("HIGH".equalsIgnoreCase(tx.riskLevel) || "CRITICAL".equalsIgnoreCase(tx.riskLevel)) {
@@ -124,7 +119,6 @@ public class TransactionService {
 
         response.saved = true;
 
-        // Step 6: build a human-readable status response.
         switch (tx.riskLevel) {
             case "CRITICAL":
                 response.status  = "FRAUD_DETECTED";
