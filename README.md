@@ -163,7 +163,6 @@ Project Team:
 | Team Member 5 | [@jaswanth82006](https://github.com/jaswanth82006) |
 | Team Member 6 | [@GNavya15](https://github.com/GNavya15) |
 
-If you want, member names and roles can also be added alongside GitHub handles.
 
 ## License
 
