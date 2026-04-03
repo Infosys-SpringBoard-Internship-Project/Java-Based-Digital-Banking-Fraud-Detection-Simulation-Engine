@@ -150,9 +150,9 @@ curl http://127.0.0.1:5000/health
 3. Run compile and tests before opening a pull request.
 4. Document configuration or migration changes in README and migration files.
 
-## Internship Team
+## Team
 
-Infosys Internship Project Team:
+Project Team:
 
 | Member | GitHub |
 |---|---|
@@ -167,4 +167,4 @@ If you want, member names and roles can also be added alongside GitHub handles.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. [LICENSE](LICENSE).
