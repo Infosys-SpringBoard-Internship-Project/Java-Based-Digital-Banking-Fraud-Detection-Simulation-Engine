@@ -1,0 +1,363 @@
+/* ══════════════════════════════════════════════════════════════════════════════
+   PERFORMANCE & UI/UX OPTIMIZATIONS
+   - GPU acceleration for animations
+   - Content containment for layout performance
+   - Skeleton loaders for perceived performance
+   - Optimized transitions
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── GPU ACCELERATION & CONTAINMENT ── */
+
+/* Enable hardware acceleration for animated elements */
+.nav,
+.panel,
+.stat-card,
+.badge,
+.btn,
+.nav-tab,
+.feed-item,
+.notif-item,
+.modal {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Content containment for better layout performance */
+.panel,
+.stat-card,
+.table-wrap,
+.feed,
+.chart-panel-body {
+  contain: content;
+}
+
+/* Strict containment for independent sections */
+.section {
+  contain: layout style;
+}
+
+/* Paint containment for cards */
+.stat-card,
+.detail-item,
+.rule-card,
+.module-card {
+  contain: paint;
+}
+
+/* ── OPTIMIZED ANIMATIONS (60fps) ── */
+
+/* Use transform/opacity only for smooth animations */
+@keyframes fade-in-optimized {
+  from { 
+    opacity: 0; 
+    transform: translate3d(0, 10px, 0); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translate3d(0, 0, 0); 
+  }
+}
+
+@keyframes slide-in-optimized {
+  from { 
+    opacity: 0; 
+    transform: translate3d(-10px, 0, 0); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translate3d(0, 0, 0); 
+  }
+}
+
+@keyframes scale-in-optimized {
+  from { 
+    opacity: 0; 
+    transform: scale3d(0.95, 0.95, 1); 
+  }
+  to { 
+    opacity: 1; 
+    transform: scale3d(1, 1, 1); 
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { 
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  }
+  50% { 
+    box-shadow: 0 0 40px rgba(59, 130, 246, 0.5);
+  }
+}
+
+/* Apply optimized animations */
+.panel {
+  animation: fade-in-optimized 0.25s ease-out;
+}
+
+.feed-item {
+  animation: slide-in-optimized 0.2s ease-out;
+}
+
+.stat-card {
+  animation: scale-in-optimized 0.2s ease-out;
+}
+
+/* ── SKELETON LOADERS ── */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-secondary) 0%,
+    var(--bg-elevated) 50%,
+    var(--bg-secondary) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+  opacity: 0.6;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-text {
+  height: 14px;
+  margin-bottom: 8px;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-text.short { width: 40%; }
+.skeleton-text.medium { width: 70%; }
+.skeleton-text.long { width: 100%; }
+
+.skeleton-title {
+  height: 28px;
+  width: 50%;
+  margin-bottom: 16px;
+}
+
+.skeleton-card {
+  height: 120px;
+  border-radius: var(--radius-md);
+}
+
+.skeleton-stat {
+  height: 80px;
+  border-radius: var(--radius-md);
+}
+
+.skeleton-table-row {
+  height: 48px;
+  margin-bottom: 4px;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+}
+
+/* ── LOADING STATES ── */
+
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(253, 252, 250, 0.95);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.loading-overlay.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 3px solid var(--border-light);
+  border-top-color: var(--cyan);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  margin-top: 20px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text-tertiary);
+  letter-spacing: 2px;
+}
+
+.loading-progress {
+  width: 200px;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  margin-top: 16px;
+  overflow: hidden;
+}
+
+.loading-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));
+  border-radius: 2px;
+  animation: loading-progress 2s ease-in-out infinite;
+}
+
+@keyframes loading-progress {
+  0% { width: 0%; transform: translateX(0); }
+  50% { width: 70%; }
+  100% { width: 100%; transform: translateX(0); }
+}
+
+/* ── PAGE TRANSITION ── */
+
+.page-transition {
+  animation: page-enter 0.3s ease-out;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* ── LAZY LOADING IMAGES ── */
+
+img[loading="lazy"] {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+img[loading="lazy"].loaded,
+img[loading="lazy"]:not([src=""]) {
+  opacity: 1;
+}
+
+/* ── REDUCE MOTION FOR ACCESSIBILITY ── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .skeleton {
+    animation: none;
+    background: var(--bg-panel);
+  }
+}
+
+/* ── INTERSECTION OBSERVER ANIMATIONS ── */
+
+.animate-on-scroll {
+  opacity: 0;
+  transform: translate3d(0, 30px, 0);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.animate-on-scroll.visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.animate-on-scroll.delay-1 { transition-delay: 0.1s; }
+.animate-on-scroll.delay-2 { transition-delay: 0.2s; }
+.animate-on-scroll.delay-3 { transition-delay: 0.3s; }
+.animate-on-scroll.delay-4 { transition-delay: 0.4s; }
+
+/* ── CONTENT VISIBILITY FOR OFF-SCREEN CONTENT ── */
+
+.section:not(.active) {
+  content-visibility: hidden;
+}
+
+/* ── OPTIMIZED SCROLLING ── */
+
+.feed,
+.table-wrap,
+.notif-list,
+.simulation-log {
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── WILL-CHANGE HINTS ── */
+
+.btn:hover,
+.nav-tab:hover,
+.stat-card:hover,
+.panel:hover {
+  will-change: transform, box-shadow;
+}
+
+/* Remove will-change after animation */
+.btn:not(:hover),
+.nav-tab:not(:hover),
+.stat-card:not(:hover),
+.panel:not(:hover) {
+  will-change: auto;
+}
+
+/* ── INSTANT FEEDBACK ── */
+
+.btn:active,
+.nav-tab:active {
+  transform: scale(0.98);
+  transition: transform 0.05s ease;
+}
+
+/* ── FOCUS VISIBLE FOR KEYBOARD USERS ── */
+
+:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ── PRINT STYLES ── */
+
+@media print {
+  .nav,
+  .btn,
+  .loading-overlay,
+  .skeleton {
+    display: none !important;
+  }
+  
+  body {
+    background: white;
+    color: black;
+  }
+  
+  .panel {
+    break-inside: avoid;
+    border: 1px solid #ccc;
+  }
+}
