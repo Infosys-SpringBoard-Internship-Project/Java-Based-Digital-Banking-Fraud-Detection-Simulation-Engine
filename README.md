@@ -176,7 +176,6 @@ This keeps detection both practical (explainable rules) and adaptive (ML-assiste
 ├── run_project.sh
 ├── stop_project.sh
 ├── .env.example
-├── .gitignore
 ├── pom.xml
 ├── LICENSE
 ```
@@ -209,6 +208,16 @@ For a fresh database, `schema.sql` is sufficient. For an existing database, run 
 - Maven 3.8+ or use the included `./mvnw`
 - Python 3.10+
 
+The launch scripts auto-detect:
+
+- `python3` first, then `python`
+- `./mvnw` first, then `mvn`
+
+Optional overrides:
+
+- `PYTHON_CMD=/path/to/python ./run_project.sh`
+- `MAVEN_CMD=/path/to/mvn ./run_project.sh`
+
 ### Steps
 
 1. Copy environment template:
@@ -224,6 +233,8 @@ cp .env.example .env.local
 ```bash
 ./run_project.sh
 ```
+
+If your machine exposes Python as `python` instead of `python3`, the launcher will pick it automatically as long as it is Python 3.10+.
 
 4. Open in browser:
 - `http://localhost:8080/pages/index.html`
@@ -269,6 +280,7 @@ Important:
 - Do not embed username/password inside `SPRING_DATASOURCE_URL`.
 - Keep DB username/password in their dedicated env variables.
 - Keep `.env.local` untracked and machine-specific.
+- Use `.git/info/exclude` for local-only ignore rules in this workspace.
 
 ## API Reference
 

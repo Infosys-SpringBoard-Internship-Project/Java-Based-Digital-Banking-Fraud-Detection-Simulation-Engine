@@ -9,6 +9,7 @@ ENV_FILE="${ROOT_DIR}/.env.local"
 ML_STARTED_BY_SCRIPT=0
 ML_PID=""
 SPRING_PORT=8080
+PYTHON_CMD="${PYTHON_CMD:-}"
 DB_URL=""
 DB_USER=""
 DB_PASSWORD=""
@@ -57,6 +58,18 @@ load_env_file() {
 }
 
 pick_maven_cmd() {
+  local override_cmd=""
+
+  if [[ -n "${MAVEN_CMD:-}" ]]; then
+    override_cmd="$(resolve_executable "${MAVEN_CMD}" || true)"
+    if [[ -n "${override_cmd}" ]]; then
+      echo "${override_cmd}"
+      return
+    fi
+
+    echo "[RUN] MAVEN_CMD='${MAVEN_CMD}' was not found. Falling back to auto-detection."
+  fi
+
   if [[ -x "${ROOT_DIR}/mvnw" && -f "${ROOT_DIR}/.mvn/wrapper/maven-wrapper.properties" ]]; then
     echo "${ROOT_DIR}/mvnw"
     return
@@ -76,6 +89,55 @@ trim() {
   value="${value#"${value%%[![:space:]]*}"}"
   value="${value%"${value##*[![:space:]]}"}"
   printf '%s' "${value}"
+}
+
+resolve_executable() {
+  local candidate="$1"
+
+  if [[ -z "${candidate}" ]]; then
+    return 1
+  fi
+
+  if [[ -x "${candidate}" ]]; then
+    printf '%s\n' "${candidate}"
+    return 0
+  fi
+
+  if command -v "${candidate}" >/dev/null 2>&1; then
+    command -v "${candidate}"
+    return 0
+  fi
+
+  return 1
+}
+
+python_version_supported() {
+  local candidate="$1"
+  "${candidate}" - <<'PY' >/dev/null 2>&1
+import sys
+
+sys.exit(0 if sys.version_info >= (3, 10) else 1)
+PY
+}
+
+pick_python_cmd() {
+  local candidate=""
+  local resolved=""
+
+  for candidate in "${PYTHON_CMD:-}" python3 python; do
+    resolved="$(resolve_executable "${candidate}" || true)"
+    if [[ -z "${resolved}" ]]; then
+      continue
+    fi
+
+    if python_version_supported "${resolved}"; then
+      echo "${resolved}"
+      return
+    fi
+  done
+
+  echo "[RUN] Python 3.10+ is required. Install python3 or python, or set PYTHON_CMD to a compatible interpreter." >&2
+  exit 1
 }
 
 read_property() {
@@ -201,7 +263,7 @@ wait_for_ml() {
 
 is_port_in_use() {
   local port="$1"
-  python3 - "$port" <<'PY'
+  "${PYTHON_CMD}" - "$port" <<'PY'
 import socket
 import sys
 
@@ -252,6 +314,8 @@ start_ml_if_needed() {
 
 main() {
   local mvn_cmd
+  PYTHON_CMD="$(pick_python_cmd)"
+  export PYTHON_CMD
   mvn_cmd="$(pick_maven_cmd)"
 
   load_env_file
@@ -260,6 +324,7 @@ main() {
   start_ml_if_needed
   pick_spring_port
 
+  echo "[RUN] Using Python interpreter: ${PYTHON_CMD}"
   echo "[RUN] Starting Spring Boot app with ${mvn_cmd} on port ${SPRING_PORT}"
   echo "[RUN] Home URL: http://localhost:${SPRING_PORT}/pages/index.html"
   echo "[RUN] Dashboard URL: http://localhost:${SPRING_PORT}/pages/dashboard.html"
