@@ -9,20 +9,21 @@ AI-powered digital banking fraud detection and simulation platform built with Sp
 ![Flask](https://img.shields.io/badge/Flask-API-black)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-## 🌐 Live Demo
+## Local Endpoints
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| **Main Application** | [fraudshield-app.onrender.com](https://fraudshield-app.onrender.com) | Frontend dashboard and Spring Boot API |
-| **ML Service** | [fraudshield-ml-pwd9.onrender.com](https://fraudshield-ml-pwd9.onrender.com) | Flask ML inference endpoint |
-| **ML Health Check** | [fraudshield-ml-pwd9.onrender.com/health](https://fraudshield-ml-pwd9.onrender.com/health) | ML service health status |
+| **Main Application** | `http://localhost:8080/pages/index.html` | Frontend landing page and Spring Boot API |
+| **Dashboard** | `http://localhost:8080/pages/dashboard.html` | Fraud monitoring dashboard |
+| **Swagger UI** | `http://localhost:8080/swagger-ui.html` | Interactive API documentation |
+| **ML Health Check** | `http://127.0.0.1:5000/health` | Flask ML service health status |
 
 ## 🚀 Quick Start TL;DR
 
 ```bash
 # 1. Clone and configure
-git clone https://github.com/Advikagarwal/fraudshield-subrepo.git
-cd fraudshield-subrepo
+git clone https://github.com/Infosys-SpringBoard-Internship-Project/Java-Based-Digital-Banking-Fraud-Detection-Simulation-Engine.git fraud-project-source
+cd fraud-project-source
 cp .env.example .env.local
 
 # 2. Update .env.local with your database credentials
@@ -46,7 +47,7 @@ cp .env.example .env.local
 - [Database Schema](#database-schema)
 - [Getting Started (Local)](#getting-started-local)
 - [Environment Variables](#environment-variables)
-- [Deployment Notes](#deployment-notes)
+- [Local Run Notes](#local-run-notes)
 - [API Reference](#api-reference)
 - [Testing](#testing)
 - [Troubleshooting](#troubleshooting)
@@ -64,8 +65,6 @@ It combines:
 - machine-learning scoring for probabilistic risk estimation
 
 The platform includes dashboard analytics, alerting, audit trails, simulation workflows, and export utilities for investigation and compliance support.
-
-Standalone repository: `https://github.com/Advikagarwal/fraudshield-subrepo`
 
 ## Problem Statement
 
@@ -109,7 +108,7 @@ This keeps detection both practical (explainable rules) and adaptive (ML-assiste
 
 ### DevOps Ready
 
-- **Environment-driven configuration** - Local and hosted setups are controlled through documented environment variables
+- **Environment-driven configuration** - Local services are controlled through documented environment variables
 - **Health monitoring** - Dedicated endpoints for DB, ML, email, and API status
 - **Swagger/OpenAPI docs** - Interactive API docs available at `/swagger-ui.html`
 
@@ -150,9 +149,9 @@ This keeps detection both practical (explainable rules) and adaptive (ML-assiste
 
 - Backend: Java 17, Spring Boot 3
 - ML Inference: Python 3, Flask, scikit-learn
-- Database: PostgreSQL (Supabase pooler)
+- Database: PostgreSQL
 - Build Tool: Maven
-- Hosting: Render
+- Runtime: local Spring Boot app plus local Flask ML service
 
 ## Project Structure
 
@@ -241,41 +240,39 @@ cp .env.example .env.local
 
 | Variable | Required | Example | Purpose |
 |---|---|---|---|
-| `SPRING_DATASOURCE_URL` | Yes | `jdbc:postgresql://aws-1-ap-south-1.pooler.supabase.com:6543/postgres?sslmode=require` | JDBC connection string for PostgreSQL |
-| `SPRING_DATASOURCE_USERNAME` | Yes | `postgres.ktmcqxdhjqjsltacucbo` | DB username (Supabase pooler format) |
+| `SPRING_DATASOURCE_URL` | Yes | `jdbc:postgresql://localhost:5432/fraud_db` | JDBC connection string for PostgreSQL |
+| `SPRING_DATASOURCE_USERNAME` | Yes | `postgres` | DB username |
 | `SPRING_DATASOURCE_PASSWORD` | Yes | `<db-password>` | DB password |
-| `ML_API_URL` | Yes | `https://fraudshield-ml-pwd9.onrender.com/predict` | ML inference endpoint |
-| `ML_HEALTH_URL` | Yes | `https://fraudshield-ml-pwd9.onrender.com/health` | ML health endpoint |
+| `ML_API_URL` | Yes | `http://127.0.0.1:5000/predict` | ML inference endpoint |
+| `ML_HEALTH_URL` | Yes | `http://127.0.0.1:5000/health` | ML health endpoint |
 | `MAIL_SENDER` | No | `alerts@example.com` | Sender email for alert notifications |
 | `MAIL_PASSWORD` | No | `<app-password>` | App password for mail provider |
 
 Notes:
 - ML auto-train pipeline is removed.
 - Application uses existing model artifacts under `ml/models/`.
-- Always include protocol (`https://`) in ML URLs.
+- For local setup, the default ML service URL is `http://127.0.0.1:5000`.
 
-## Deployment Notes
+## Local Run Notes
 
-This branch is configured for environment-variable driven deployment, but it does not include committed Dockerfiles or a Render blueprint.
+This repository is currently documented for local development only.
 
-Standalone repository URL: `https://github.com/Advikagarwal/fraudshield-subrepo`
-
-For any hosted deployment:
+Local runtime expectations:
 
 1. Provide the environment variables listed above.
-2. Start the Spring Boot app on the platform port using `PORT`.
-3. Run the Flask ML service separately and point `ML_API_URL` and `ML_HEALTH_URL` to it.
+2. Start PostgreSQL and create the target database before launching the app.
+3. Run the Flask ML service separately or let `./run_project.sh` start it.
 4. Verify `/system/health` and `/swagger-ui.html` after startup.
 
 Important:
 
 - Do not embed username/password inside `SPRING_DATASOURCE_URL`.
 - Keep DB username/password in their dedicated env variables.
-- Rotate credentials immediately if they were ever exposed.
+- Keep `.env.local` untracked and machine-specific.
 
 ## API Reference
 
-Base URL: `https://fraudshield-app.onrender.com` (production) or `http://localhost:8080` (local)
+Base URL: `http://localhost:8080`
 
 Swagger UI: `http://localhost:8080/swagger-ui.html` (local)
 
@@ -338,7 +335,7 @@ Swagger UI: `http://localhost:8080/swagger-ui.html` (local)
 
 ```bash
 # Submit a transaction for fraud detection
-curl -X POST https://fraudshield-app.onrender.com/transaction/validate \
+curl -X POST http://localhost:8080/transaction/validate \
   -H "Content-Type: application/json" \
   -d '{
     "amount": 5000.00,
@@ -402,34 +399,33 @@ View coverage report: `target/site/jacoco/index.html`
 ## Troubleshooting
 
 - `ML: DOWN` while `/health` returns running:
-  - verify `ML_API_URL` and `ML_HEALTH_URL` include `https://`
-  - redeploy `fraudshield-app`
+  - verify `ML_API_URL` and `ML_HEALTH_URL` point to `http://127.0.0.1:5000`
+  - start the ML service with `ml/run_ml.sh` or `./run_project.sh`
 
 - `Unable to commit against JDBC Connection`:
-  - verify Supabase pooler host/port/username/password
-  - ensure `sslmode=require`
+  - verify PostgreSQL is running locally and accepting connections
+  - recheck database name, host, port, username, and password
 
 - `Authentication error ... no user`:
-  - confirm `SPRING_DATASOURCE_USERNAME` format is `postgres.<project-ref>`
+  - confirm the seeded admin user exists in `admin_users`
 
 - App fails during DB initialization:
   - recheck datasource URL and credentials
-  - verify pooler connectivity from Render
+  - verify the database exists before launching Spring Boot
 
 ## Security Notes
 
-- Never commit `.env`, `.env.local`, or production secrets.
+- Never commit `.env`, `.env.local`, or real credentials.
 - Keep `src/main/resources/application.properties` limited to placeholders and non-secret defaults.
 - Rotate DB and mail credentials if exposed.
-- Use least-privilege DB credentials in production.
-- Prefer secret managers and protected CI/CD variables.
+- Use least-privilege DB credentials for any shared environment.
 
 ## Contributing
 
 1. Create a feature branch.
 2. Commit focused changes with clear commit messages.
 3. Open a pull request to `develop` or `main` as per repository workflow.
-4. Ensure deployment/config changes are documented in README.
+4. Ensure schema/config changes are documented in README.
 
 ## Team
 
