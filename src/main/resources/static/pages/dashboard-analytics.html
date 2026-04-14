@@ -79,13 +79,34 @@
         <div class="page-subtitle">// FRAUD PATTERN ANALYSIS</div>
       </div>
       <div style="display:flex; gap:10px; align-items:center;">
-        <select class="form-select compact-select" id="analytics-range" onchange="loadAnalytics()">
+        <select class="form-select compact-select" id="analytics-range" onchange="handleRangeChange()">
           <option value="7">LAST 7 DAYS</option>
           <option value="30" selected>LAST 30 DAYS</option>
           <option value="90">LAST 90 DAYS</option>
+          <option value="custom">CUSTOM RANGE</option>
         </select>
         <button class="btn btn-primary" onclick="loadAnalytics()">↺ REFRESH</button>
       </div>
+    </div>
+
+    <!-- DATE RANGE FILTER -->
+    <div class="date-range-filter" id="date-range-filter" style="display: none; margin-bottom: 20px;">
+      <span class="date-range-label">DATE RANGE</span>
+      <div class="date-input-group">
+        <label class="date-range-label" for="date-from">FROM</label>
+        <input type="date" class="date-input" id="date-from" onchange="updateDateRange()">
+        <span class="date-separator">→</span>
+        <label class="date-range-label" for="date-to">TO</label>
+        <input type="date" class="date-input" id="date-to" onchange="updateDateRange()">
+      </div>
+      <div class="date-presets">
+        <button class="date-preset-btn" onclick="setDatePreset(7)">7D</button>
+        <button class="date-preset-btn" onclick="setDatePreset(14)">14D</button>
+        <button class="date-preset-btn active" onclick="setDatePreset(30)">30D</button>
+        <button class="date-preset-btn" onclick="setDatePreset(90)">90D</button>
+        <button class="date-preset-btn" onclick="setDatePreset(365)">1Y</button>
+      </div>
+      <button class="btn btn-primary date-range-apply" onclick="applyDateRange()">APPLY</button>
     </div>
 
     <div class="stats-grid stats-grid-users analytics-summary-grid" id="analytics-summary-cards">

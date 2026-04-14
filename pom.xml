@@ -54,12 +54,6 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Flyway database migrations -->
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
-        </dependency>
-
         <!-- DevTools - auto restart on change -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

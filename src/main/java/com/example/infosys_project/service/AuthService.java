@@ -54,6 +54,9 @@ public class AuthService {
     @Value("${spring.mail.username:no-reply@fraudshield.local}")
     private String mailFrom;
 
+    @Value("${mail.sender.address:}")
+    private String senderAddressFallback;
+
     private final Map<String, AdminUser> sessions = new ConcurrentHashMap<>();
     private final Map<String, LocalDateTime> sessionExpiry = new ConcurrentHashMap<>();
 
@@ -237,12 +240,13 @@ public class AuthService {
     private boolean sendTemporaryPasswordEmail(AdminUser admin, String temporaryPassword) {
         String roleLabel = admin.getRole() == null ? "USER" : admin.getRole().name();
         String htmlBody = emailAlertService.buildForgotPasswordEmailHtml(admin, temporaryPassword);
+        String effectiveFrom = resolveFromAddress();
 
         for (int attempt = 1; attempt <= EMAIL_SEND_ATTEMPTS; attempt++) {
             try {
                 MimeMessage message = mailSender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-                helper.setFrom(mailFrom);
+                helper.setFrom(effectiveFrom);
                 helper.setTo(admin.getEmail());
                 helper.setSubject("FraudShield " + roleLabel + " Temporary Password");
                 helper.setText(htmlBody, true);
@@ -255,7 +259,7 @@ public class AuthService {
             } catch (Exception ex) {
                 if (attempt == EMAIL_SEND_ATTEMPTS) {
                     log.error("Failed to send password reset email to {} after {} attempts. mailFrom='{}', reason='{}'",
-                            admin.getEmail(), EMAIL_SEND_ATTEMPTS, mailFrom, ex.getMessage(), ex);
+                            admin.getEmail(), EMAIL_SEND_ATTEMPTS, effectiveFrom, ex.getMessage(), ex);
                     return false;
                 }
 
@@ -270,6 +274,16 @@ public class AuthService {
         }
 
         return false;
+    }
+
+    private String resolveFromAddress() {
+        if (mailFrom != null && !mailFrom.trim().isEmpty()) {
+            return mailFrom.trim();
+        }
+        if (senderAddressFallback != null && !senderAddressFallback.trim().isEmpty()) {
+            return senderAddressFallback.trim();
+        }
+        return "no-reply@fraudshield.local";
     }
 
     // ==================== USER MANAGEMENT METHODS ====================

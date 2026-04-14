@@ -1,6 +1,3 @@
--- Reference schema used for documentation and local inspection.
--- Runtime schema changes are managed by Flyway migrations under db/migration.
-
 CREATE TABLE IF NOT EXISTS admin_users (
     id BIGSERIAL PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
@@ -19,6 +16,7 @@ CREATE TABLE IF NOT EXISTS admin_users (
 CREATE INDEX IF NOT EXISTS idx_admin_users_email ON admin_users (email);
 CREATE INDEX IF NOT EXISTS idx_admin_users_active ON admin_users (is_active);
 CREATE INDEX IF NOT EXISTS idx_admin_users_role ON admin_users (role);
+CREATE INDEX IF NOT EXISTS idx_admin_users_created_by ON admin_users (created_by);
 
 CREATE TABLE IF NOT EXISTS transactions (
     transaction_id VARCHAR(36) PRIMARY KEY,
@@ -56,7 +54,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     is_fraud BOOLEAN NOT NULL DEFAULT FALSE,
     fraud_reason VARCHAR(1000),
     risk_score DOUBLE PRECISION NOT NULL DEFAULT 0,
-    risk_level VARCHAR(20) NOT NULL DEFAULT 'NORMAL',
+    risk_level VARCHAR(20) NOT NULL DEFAULT 'LOW',
     ml_fraud_probability DOUBLE PRECISION NOT NULL DEFAULT 0
 );
 
@@ -76,7 +74,10 @@ CREATE TABLE IF NOT EXISTS fraud_alerts (
     location VARCHAR(255),
     ip_risk_tag VARCHAR(50),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    is_read BOOLEAN NOT NULL DEFAULT FALSE
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    CONSTRAINT fk_fraud_alerts_transaction
+        FOREIGN KEY (transaction_id) REFERENCES transactions (transaction_id)
+        ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_fraud_alerts_created_at ON fraud_alerts (created_at);
@@ -108,6 +109,21 @@ CREATE TABLE IF NOT EXISTS system_health (
     txn_processing_rate DOUBLE PRECISION,
     active_sessions INTEGER,
     error_count_1hr INTEGER
+);
+
+INSERT INTO system_health (
+    id,
+    last_update,
+    db_status,
+    ml_status,
+    email_status,
+    txn_processing_rate,
+    active_sessions,
+    error_count_1hr
+)
+SELECT 1, CURRENT_TIMESTAMP, 'UNKNOWN', 'UNKNOWN', 'UNKNOWN', 0, 0, 0
+WHERE NOT EXISTS (
+    SELECT 1 FROM system_health WHERE id = 1
 );
 
 CREATE TABLE IF NOT EXISTS audit_logs (
