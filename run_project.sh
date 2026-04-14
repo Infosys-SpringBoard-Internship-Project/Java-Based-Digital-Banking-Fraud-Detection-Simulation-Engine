@@ -4,12 +4,12 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ML_DIR="${ROOT_DIR}/ml"
 ML_LOG="${ML_DIR}/ml_api.log"
+APP_PROPS="${ROOT_DIR}/src/main/resources/application.properties"
 ENV_FILE="${ROOT_DIR}/.env.local"
-ENV_TEMPLATE="${ROOT_DIR}/.env.example"
-SPRING_LOG="${ROOT_DIR}/project.log"
 ML_STARTED_BY_SCRIPT=0
 ML_PID=""
 SPRING_PORT=8080
+PYTHON_CMD="${PYTHON_CMD:-}"
 DB_URL=""
 DB_USER=""
 DB_PASSWORD=""
@@ -27,40 +27,10 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-trim() {
-  local value="$1"
-  value="${value#"${value%%[![:space:]]*}"}"
-  value="${value%"${value##*[![:space:]]}"}"
-  printf '%s' "${value}"
-}
-
-check_command() {
-  command -v "$1" >/dev/null 2>&1
-}
-
-ensure_env_file() {
-  if [[ -f "${ENV_FILE}" ]]; then
-    return
-  fi
-
-  if [[ -f "${ENV_TEMPLATE}" ]]; then
-    cp "${ENV_TEMPLATE}" "${ENV_FILE}"
-    echo "[RUN] Created .env.local from .env.example"
-    return
-  fi
-
-  cat > "${ENV_FILE}" <<'EOF'
-SPRING_DATASOURCE_URL=jdbc:postgresql://127.0.0.1:5432/fraudshield
-SPRING_DATASOURCE_USERNAME=postgres
-SPRING_DATASOURCE_PASSWORD=postgres
-ML_API_URL=http://127.0.0.1:5000/predict
-ML_HEALTH_URL=http://127.0.0.1:5000/health
-EOF
-  echo "[RUN] Created .env.local with local defaults"
-}
-
 load_env_file() {
-  ensure_env_file
+  if [[ ! -f "${ENV_FILE}" ]]; then
+    return
+  fi
 
   # shellcheck disable=SC2162
   while IFS= read line || [[ -n "${line}" ]]; do
@@ -87,25 +57,19 @@ load_env_file() {
   echo "[RUN] Loaded environment from .env.local"
 }
 
-check_prerequisites() {
-  local missing=0
-
-  if ! check_command python3; then
-    echo "[RUN] Missing required command: python3" >&2
-    missing=1
-  fi
-
-  if ! check_command curl; then
-    echo "[RUN] Missing required command: curl" >&2
-    missing=1
-  fi
-
-  if [[ "${missing}" -ne 0 ]]; then
-    exit 1
-  fi
-}
-
 pick_maven_cmd() {
+  local override_cmd=""
+
+  if [[ -n "${MAVEN_CMD:-}" ]]; then
+    override_cmd="$(resolve_executable "${MAVEN_CMD}" || true)"
+    if [[ -n "${override_cmd}" ]]; then
+      echo "${override_cmd}"
+      return
+    fi
+
+    echo "[RUN] MAVEN_CMD='${MAVEN_CMD}' was not found. Falling back to auto-detection."
+  fi
+
   if [[ -x "${ROOT_DIR}/mvnw" && -f "${ROOT_DIR}/.mvn/wrapper/maven-wrapper.properties" ]]; then
     echo "${ROOT_DIR}/mvnw"
     return
@@ -120,23 +84,112 @@ pick_maven_cmd() {
   exit 1
 }
 
+trim() {
+  local value="$1"
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
+  printf '%s' "${value}"
+}
+
+resolve_executable() {
+  local candidate="$1"
+
+  if [[ -z "${candidate}" ]]; then
+    return 1
+  fi
+
+  if [[ -x "${candidate}" ]]; then
+    printf '%s\n' "${candidate}"
+    return 0
+  fi
+
+  if command -v "${candidate}" >/dev/null 2>&1; then
+    command -v "${candidate}"
+    return 0
+  fi
+
+  return 1
+}
+
+python_version_supported() {
+  local candidate="$1"
+  "${candidate}" - <<'PY' >/dev/null 2>&1
+import sys
+
+sys.exit(0 if sys.version_info >= (3, 10) else 1)
+PY
+}
+
+pick_python_cmd() {
+  local candidate=""
+  local resolved=""
+
+  for candidate in "${PYTHON_CMD:-}" python3 python; do
+    resolved="$(resolve_executable "${candidate}" || true)"
+    if [[ -z "${resolved}" ]]; then
+      continue
+    fi
+
+    if python_version_supported "${resolved}"; then
+      echo "${resolved}"
+      return
+    fi
+  done
+
+  echo "[RUN] Python 3.10+ is required. Install python3 or python, or set PYTHON_CMD to a compatible interpreter." >&2
+  exit 1
+}
+
+read_property() {
+  local key="$1"
+  local line
+  line="$(grep -E "^${key}=" "${APP_PROPS}" | tail -n 1 || true)"
+  if [[ -z "${line}" ]]; then
+    return 1
+  fi
+  trim "${line#*=}"
+}
+
+resolve_placeholder_default() {
+  local value="$1"
+  if [[ "${value}" =~ ^\$\{[^:}]+:(.*)\}$ ]]; then
+    printf '%s' "${BASH_REMATCH[1]}"
+    return
+  fi
+  printf '%s' "${value}"
+}
+
 load_db_config() {
-  DB_URL="${SPRING_DATASOURCE_URL:-jdbc:postgresql://127.0.0.1:5432/fraudshield}"
-  DB_USER="${SPRING_DATASOURCE_USERNAME:-postgres}"
-  DB_PASSWORD="${SPRING_DATASOURCE_PASSWORD:-postgres}"
-  ML_HEALTH_CHECK_URL="${ML_HEALTH_URL:-http://127.0.0.1:5000/health}"
+  if [[ ! -f "${APP_PROPS}" ]]; then
+    echo "[RUN] Missing application.properties at ${APP_PROPS}" >&2
+    exit 1
+  fi
+
+  DB_URL="${SPRING_DATASOURCE_URL:-$(read_property "spring.datasource.url" || true)}"
+  DB_USER="${SPRING_DATASOURCE_USERNAME:-$(read_property "spring.datasource.username" || true)}"
+  DB_PASSWORD="${SPRING_DATASOURCE_PASSWORD:-$(read_property "spring.datasource.password" || true)}"
+  ML_HEALTH_CHECK_URL="${ML_HEALTH_URL:-$(read_property "ml.health.url" || true)}"
+
+  DB_URL="$(resolve_placeholder_default "${DB_URL}")"
+  DB_USER="$(resolve_placeholder_default "${DB_USER}")"
+  DB_PASSWORD="$(resolve_placeholder_default "${DB_PASSWORD}")"
+  ML_HEALTH_CHECK_URL="$(resolve_placeholder_default "${ML_HEALTH_CHECK_URL}")"
+
+  if [[ -z "${ML_HEALTH_CHECK_URL}" ]]; then
+    ML_HEALTH_CHECK_URL="http://127.0.0.1:5000/health"
+  fi
 
   if [[ -z "${DB_URL}" || -z "${DB_USER}" || -z "${DB_PASSWORD}" ]]; then
     echo "[RUN] Database settings are incomplete. Set SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME and SPRING_DATASOURCE_PASSWORD." >&2
     exit 1
   fi
 
-  if [[ "${DB_PASSWORD}" == "your_password" ]]; then
-    echo "[RUN] Replace SPRING_DATASOURCE_PASSWORD in .env.local before starting the project." >&2
+  if [[ "${DB_URL}" == *"your-host"* || "${DB_URL}" == *"your_database"* || "${DB_USER}" == "your_username" || "${DB_PASSWORD}" == "your_db_password" || "${DB_PASSWORD}" == "your_password" ]]; then
+    echo "[RUN] Replace the placeholder database values in .env.local before starting the project." >&2
     exit 1
   fi
 
-  if [[ ! "${DB_URL}" =~ ^jdbc:postgresql://([^/:?]+)(:([0-9]+))?/([^?]+) ]]; then
+  if [[ ! "${DB_URL}" =~ ^jdbc:postgresql://([^/:?]+)(:([0-9]+))?/([^?]+)(\?.*)?$ ]]; then
     echo "[RUN] Unsupported spring.datasource.url format: ${DB_URL}" >&2
     echo "[RUN] Expected format: jdbc:postgresql://host:port/database?params" >&2
     exit 1
@@ -147,21 +200,27 @@ load_db_config() {
     DB_PORT="${BASH_REMATCH[3]}"
   fi
   DB_NAME="${BASH_REMATCH[4]}"
-  DB_NAME="${DB_NAME%%\?*}"
+}
+
+check_command() {
+  command -v "$1" >/dev/null 2>&1
 }
 
 ensure_database_ready() {
-  local db_exists
+  local pg_ready_cmd=()
+  local psql_cmd=()
+  local createdb_cmd=()
 
   echo "[RUN] Using database ${DB_NAME} on ${DB_HOST}:${DB_PORT} with user ${DB_USER}"
 
-  if check_command pg_isready; then
-    if ! PGPASSWORD="${DB_PASSWORD}" pg_isready -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" >/dev/null 2>&1; then
+  if ! check_command pg_isready; then
+    echo "[RUN] pg_isready is not installed. Skipping PostgreSQL readiness check."
+  else
+    pg_ready_cmd=(pg_isready -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}")
+    if ! PGPASSWORD="${DB_PASSWORD}" "${pg_ready_cmd[@]}" >/dev/null 2>&1; then
       echo "[RUN] PostgreSQL is not reachable at ${DB_HOST}:${DB_PORT} for user ${DB_USER}." >&2
       exit 1
     fi
-  else
-    echo "[RUN] pg_isready is not installed. Skipping PostgreSQL readiness check."
   fi
 
   if ! check_command psql; then
@@ -169,8 +228,8 @@ ensure_database_ready() {
     return
   fi
 
-  db_exists="$(PGPASSWORD="${DB_PASSWORD}" psql -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'" 2>/dev/null | tr -d '[:space:]')"
-  if [[ "${db_exists}" == "1" ]]; then
+  psql_cmd=(psql -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'")
+  if [[ "$(PGPASSWORD="${DB_PASSWORD}" "${psql_cmd[@]}" 2>/dev/null | tr -d '[:space:]')" == "1" ]]; then
     echo "[RUN] Database ${DB_NAME} already exists."
     return
   fi
@@ -182,8 +241,9 @@ ensure_database_ready() {
   fi
 
   echo "[RUN] Creating database ${DB_NAME}..."
-  if ! PGPASSWORD="${DB_PASSWORD}" createdb -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" "${DB_NAME}" >/dev/null 2>&1; then
-    echo "[RUN] Failed to create database ${DB_NAME}. Check credentials and privileges." >&2
+  createdb_cmd=(createdb -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" "${DB_NAME}")
+  if ! PGPASSWORD="${DB_PASSWORD}" "${createdb_cmd[@]}"; then
+    echo "[RUN] Failed to create database ${DB_NAME}." >&2
     exit 1
   fi
 }
@@ -203,7 +263,7 @@ wait_for_ml() {
 
 is_port_in_use() {
   local port="$1"
-  python3 - "$port" <<'PY'
+  "${PYTHON_CMD}" - "$port" <<'PY'
 import socket
 import sys
 
@@ -254,8 +314,8 @@ start_ml_if_needed() {
 
 main() {
   local mvn_cmd
-
-  check_prerequisites
+  PYTHON_CMD="$(pick_python_cmd)"
+  export PYTHON_CMD
   mvn_cmd="$(pick_maven_cmd)"
 
   load_env_file
@@ -264,15 +324,12 @@ main() {
   start_ml_if_needed
   pick_spring_port
 
+  echo "[RUN] Using Python interpreter: ${PYTHON_CMD}"
   echo "[RUN] Starting Spring Boot app with ${mvn_cmd} on port ${SPRING_PORT}"
   echo "[RUN] Home URL: http://localhost:${SPRING_PORT}/pages/index.html"
   echo "[RUN] Dashboard URL: http://localhost:${SPRING_PORT}/pages/dashboard.html"
-  echo "[RUN] Logs: ${SPRING_LOG}"
   cd "${ROOT_DIR}"
-  SPRING_DATASOURCE_URL="${DB_URL}" \
-  SPRING_DATASOURCE_USERNAME="${DB_USER}" \
-  SPRING_DATASOURCE_PASSWORD="${DB_PASSWORD}" \
-  "${mvn_cmd}" spring-boot:run -Dspring-boot.run.arguments="--server.port=${SPRING_PORT}" > "${SPRING_LOG}" 2>&1
+  "${mvn_cmd}" spring-boot:run -Dspring-boot.run.arguments="--server.port=${SPRING_PORT}"
 }
 
 main "$@"

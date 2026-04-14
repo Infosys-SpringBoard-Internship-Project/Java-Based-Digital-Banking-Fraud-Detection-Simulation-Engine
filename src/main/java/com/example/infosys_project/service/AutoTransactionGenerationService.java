@@ -18,7 +18,7 @@ public class AutoTransactionGenerationService {
 
     private static final Logger log = LoggerFactory.getLogger(AutoTransactionGenerationService.class);
     private static final int MIN_INTERVAL_SECONDS = 10;
-    private static final int MAX_INTERVAL_SECONDS = 120;
+    private static final int MAX_INTERVAL_SECONDS = 60;
 
     private final TransactionService transactionService;
 

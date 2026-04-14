@@ -34,11 +34,14 @@ public class EmailAlertService {
     @Autowired
     private AdminRepository adminRepository;
 
-    @Value("${mail.sender.address}")
+    @Value("${mail.sender.address:no-reply@fraudshield.local}")
     private String senderAddress;
 
-    @Value("${mail.sender.name}")
+    @Value("${mail.sender.name:FraudShield Alerts}")
     private String senderName;
+
+    @Value("${app.dashboard.url:http://localhost:8080/pages/dashboard.html}")
+    private String dashboardUrl;
 
     @PostConstruct
     public void init() {
@@ -175,7 +178,7 @@ public class EmailAlertService {
                 <tr><td style="background:%s;padding:20px 32px;border-top:1px solid #f3f4f6;">
                   <div style="font-size:11px;letter-spacing:2px;color:#6b7280;text-transform:uppercase;margin-bottom:10px;">RISK SCORE</div>
                   <table width="100%%" cellpadding="0" cellspacing="0" style="background:#e5e7eb;height:8px;">
-                  <tr><td style="width:%d%%;background:%s;height:8px;"></td><td></td></tr>
+                  <tr><td style="width:%s%%;background:%s;height:8px;"></td><td></td></tr>
                   </table>
                   <div style="margin-top:8px;font-family:monospace;font-size:14px;color:%s;font-weight:bold;">%s</div>
                 </td></tr>
@@ -183,7 +186,7 @@ public class EmailAlertService {
                 <!-- 6. ACTION FOOTER -->
                 <tr><td style="background:%s;border-top:1px solid #e5e7eb;padding:20px 32px;">
                   <div style="color:#6b7280;font-size:13px;margin-bottom:12px;">Review this transaction in the dashboard</div>
-                  <a href="http://localhost:8080/pages/dashboard.html"
+                  <a href="%s"
                      style="display:inline-block;background:#1e7fd4;color:#ffffff;padding:10px 24px;font-weight:bold;text-decoration:none;font-size:13px;">OPEN FRAUDSHIELD DASHBOARD →</a>
                   <div style="margin-top:16px;font-size:11px;color:#9ca3af;">
                     This is an automated alert from FraudShield.<br>
@@ -223,8 +226,9 @@ public class EmailAlertService {
                 row("ML Probability", mlPercent),
                 row("Timestamp", formattedTime),
                 rulesHtml,                                           // rules chips
-                barPct, barColor,                                    // score bar
+                String.valueOf(barPct), barColor,                    // score bar
                 barColor, scoreLabel,                                // score text
+                dashboardUrl,                                        // dashboard URL
                 senderAddress                                        // footer
         );
     }
