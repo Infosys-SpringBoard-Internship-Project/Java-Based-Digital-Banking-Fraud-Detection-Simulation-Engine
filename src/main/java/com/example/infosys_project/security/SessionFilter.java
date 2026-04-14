@@ -93,7 +93,11 @@ public class SessionFilter extends OncePerRequestFilter {
                 || path.endsWith(".woff2")
                 || path.startsWith("/actuator")
                 || path.startsWith("/error")
-                || path.equals("/favicon.ico");
+                || path.equals("/favicon.ico")
+                // Swagger/OpenAPI documentation endpoints
+                || path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs")
+                || path.equals("/swagger-ui.html");
     }
 
     private boolean hasPageAccess(UserRole role, String path) {

@@ -1338,6 +1338,9 @@ async function showDetail(id) {
       <div class="detail-section"><div class="detail-section-title">Rule Breakdown With Explanation</div><div class="detail-grid">${ruleRows}</div></div>
     `;
     document.getElementById('modal').classList.add('open');
+    // Scroll the overlay itself to the top so details show without scrolling
+    const overlay = document.getElementById('modal');
+    if (overlay) overlay.scrollTop = 0;
   } catch {
     toast('Unable to load transaction detail', 'error');
   }
@@ -1843,9 +1846,9 @@ const rulesRefBody = document.getElementById('rules-ref-tbody');
 if (rulesRefBody) {
   rulesRefBody.innerHTML = RULES_REF.map(([code, name, pts]) => `
     <tr style="border-bottom:1px solid rgba(30,45,61,0.4);">
-      <td style="padding:5px 8px;font-family:var(--font-mono);font-size:10px;color:var(--accent-cyan);">${code}</td>
-      <td style="padding:5px 8px;color:var(--text-primary);font-size:11px;">${name}</td>
-      <td style="padding:5px 8px;text-align:right;font-family:var(--font-mono);font-size:10px;color:var(--yellow);">${pts}</td>
+      <td style="padding:6px 8px;font-family:var(--font-mono);font-size:12px;color:var(--accent-cyan);"><strong>${code}</strong></td>
+      <td style="padding:6px 8px;color:var(--text-primary);font-size:14px;font-weight:500;">${name}</td>
+      <td style="padding:6px 8px;text-align:right;font-family:var(--font-mono);font-size:13px;color:var(--yellow);font-weight:700;">${pts}</td>
     </tr>
   `).join('');
 }
@@ -2489,5 +2492,164 @@ async function deleteUser(userId, userName) {
     loadUsers();
   } catch (err) {
     toast('Unable to delete user', 'error');
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════
+   DATE RANGE FILTER FUNCTIONS
+   ═══════════════════════════════════════════════════════════════════════════════════════ */
+
+// Date range state
+let customDateRange = {
+  from: null,
+  to: null,
+  activePreset: 30
+};
+
+// Initialize date inputs with default values
+function initDateRangeFilter() {
+  const today = new Date();
+  const thirtyDaysAgo = new Date(today);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  
+  const fromInput = document.getElementById('date-from');
+  const toInput = document.getElementById('date-to');
+  
+  if (fromInput) {
+    fromInput.value = formatDateForInput(thirtyDaysAgo);
+    fromInput.max = formatDateForInput(today);
+    customDateRange.from = thirtyDaysAgo;
+  }
+  
+  if (toInput) {
+    toInput.value = formatDateForInput(today);
+    toInput.max = formatDateForInput(today);
+    customDateRange.to = today;
+  }
+}
+
+// Format date for input[type="date"]
+function formatDateForInput(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Handle dropdown change
+function handleRangeChange() {
+  const select = document.getElementById('analytics-range');
+  const filterPanel = document.getElementById('date-range-filter');
+  
+  if (!select || !filterPanel) return;
+  
+  if (select.value === 'custom') {
+    filterPanel.style.display = 'flex';
+    initDateRangeFilter();
+  } else {
+    filterPanel.style.display = 'none';
+    loadAnalytics();
+  }
+}
+
+// Set date preset (7, 14, 30, 90, 365 days)
+function setDatePreset(days) {
+  const today = new Date();
+  const pastDate = new Date(today);
+  pastDate.setDate(pastDate.getDate() - days);
+  
+  const fromInput = document.getElementById('date-from');
+  const toInput = document.getElementById('date-to');
+  
+  if (fromInput) {
+    fromInput.value = formatDateForInput(pastDate);
+    customDateRange.from = pastDate;
+  }
+  
+  if (toInput) {
+    toInput.value = formatDateForInput(today);
+    customDateRange.to = today;
+  }
+  
+  // Update active preset button
+  customDateRange.activePreset = days;
+  document.querySelectorAll('.date-preset-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  event.target.classList.add('active');
+}
+
+// Update date range from inputs
+function updateDateRange() {
+  const fromInput = document.getElementById('date-from');
+  const toInput = document.getElementById('date-to');
+  
+  if (fromInput && fromInput.value) {
+    customDateRange.from = new Date(fromInput.value);
+  }
+  
+  if (toInput && toInput.value) {
+    customDateRange.to = new Date(toInput.value);
+  }
+  
+  // Clear active preset when manually changing dates
+  document.querySelectorAll('.date-preset-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  customDateRange.activePreset = null;
+  
+  // Validate date range
+  if (customDateRange.from && customDateRange.to) {
+    if (customDateRange.from > customDateRange.to) {
+      toast('Start date must be before end date', 'warning');
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+// Apply custom date range and load analytics
+function applyDateRange() {
+  if (!updateDateRange()) return;
+  
+  if (!customDateRange.from || !customDateRange.to) {
+    toast('Please select both start and end dates', 'warning');
+    return;
+  }
+  
+  loadAnalyticsWithDateRange(customDateRange.from, customDateRange.to);
+}
+
+// Load analytics with custom date range
+async function loadAnalyticsWithDateRange(fromDate, toDate) {
+  try {
+    const fromStr = formatDateForInput(fromDate);
+    const toStr = formatDateForInput(toDate);
+    
+    // Calculate days for comparison
+    const diffTime = Math.abs(toDate - fromDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+    
+    const r = await fetch(`${API}/transaction/analytics?days=${diffDays}&from=${encodeURIComponent(fromStr)}&to=${encodeURIComponent(toStr)}`, { 
+      headers: authHeaders() 
+    });
+    const data = await r.json();
+    
+    if (!r.ok) {
+      throw new Error(data.error || 'analytics endpoint failed');
+    }
+    
+    renderAnalyticsSummary(data.summary || {}, data.comparison || {});
+    renderTrendChart(data.trendSeries || []);
+    renderVolumeChart(data.trendSeries || []);
+    renderRiskChart(data.riskDistribution || []);
+    renderIpChart(data.ipDistribution || []);
+    renderMerchantChart(data.merchantDistribution || []);
+    renderRuleChart(data.ruleDistribution || []);
+    
+    toast(`Loaded analytics for ${fromStr} to ${toStr}`, 'success');
+  } catch {
+    toast('Analytics failed to load', 'error');
   }
 }
