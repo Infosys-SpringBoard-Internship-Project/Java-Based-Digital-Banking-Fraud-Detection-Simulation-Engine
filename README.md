@@ -116,25 +116,25 @@ This keeps detection both practical (explainable rules) and adaptive (ML-assiste
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│                    Frontend Dashboard                        │
+│                    Frontend Dashboard                       │
 │              (HTML/CSS/JS + Chart.js + DataTables)          │
 └────────────────────────┬────────────────────────────────────┘
                          │
                          v
 ┌─────────────────────────────────────────────────────────────┐
-│              Spring Boot API (Port 8080)                     │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │  Auth        │  │  Transaction │  │  Simulation  │     │
-│  │  Controller  │  │  Controller  │  │  Controller  │     │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘     │
-│         │                  │                  │              │
-│  ┌──────v──────────────────v──────────────────v────────┐   │
-│  │           Fraud Detection Service                    │   │
-│  │  (Rules Engine + ML Integration + Alert Manager)    │   │
-│  └──────┬────────────────────────────────────┬─────────┘   │
-└─────────┼────────────────────────────────────┼─────────────┘
-          │                                     │
-          v                                     v
+│              Spring Boot API (Port 8080)                    │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │  Auth        │  │  Transaction │  │  Simulation  │       │
+│  │  Controller  │  │  Controller  │  │  Controller  │       │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘       │
+│         │                  │                  │             │
+│  ┌──────v──────────────────v──────────────────v────────┐    │
+│  │           Fraud Detection Service                   │    │
+│  │  (Rules Engine + ML Integration + Alert Manager)    │    │
+│  └──────┬────────────────────────────────────┬─────────┘    │
+└─────────┼────────────────────────────────────┼─────────────-┘
+          │                                    │
+          v                                    v
 ┌─────────────────────┐              ┌─────────────────────┐
 │   PostgreSQL DB     │              │  Flask ML Service   │
 │  (Supabase Pooler)  │              │    (Port 5000)      │
