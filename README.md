@@ -30,8 +30,8 @@ cp .env.example .env.local
 # 3. Run everything
 ./run_project.sh
 
-# 4. Open dashboard
-open http://localhost:8080/pages/dashboard.html
+# 4. Open the dashboard in your browser
+# http://localhost:8080/pages/dashboard.html
 ```
 
 ## Table of Contents
@@ -45,8 +45,7 @@ open http://localhost:8080/pages/dashboard.html
 - [Project Structure](#project-structure)
 - [Getting Started (Local)](#getting-started-local)
 - [Environment Variables](#environment-variables)
-- [Run with Docker](#run-with-docker)
-- [Deploy on Render](#deploy-on-render)
+- [Deployment Notes](#deployment-notes)
 - [API Reference](#api-reference)
 - [Testing](#testing)
 - [Troubleshooting](#troubleshooting)
@@ -87,7 +86,7 @@ FraudShield uses a hybrid pipeline:
 
 This keeps detection both practical (explainable rules) and adaptive (ML-assisted scoring).
 
-## ✨ Key Features
+## Key Features
 
 ### Detection Engine
 - **Hybrid fraud detection** - Combines rule-based logic (R01-R14) with ML probability scoring
@@ -106,11 +105,12 @@ This keeps detection both practical (explainable rules) and adaptive (ML-assiste
 - **Fraud simulation** - Generate synthetic fraud scenarios for testing and training
 
 ### DevOps Ready
-- **Docker containerization** - Multi-stage builds for both Java and Python services
-- **Health monitoring** - Dedicated endpoints for DB, ML, email, and API status
-- **Production deployment** - Render blueprint for zero-config cloud deployment
 
-## 🏗️ Architecture
+- **Environment-driven configuration** - Local and hosted setups are controlled through documented environment variables
+- **Health monitoring** - Dedicated endpoints for DB, ML, email, and API status
+- **Swagger/OpenAPI docs** - Interactive API docs available at `/swagger-ui.html`
+
+## Architecture
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
@@ -149,7 +149,6 @@ This keeps detection both practical (explainable rules) and adaptive (ML-assiste
 - ML Inference: Python 3, Flask, scikit-learn
 - Database: PostgreSQL (Supabase pooler)
 - Build Tool: Maven
-- Containers: Docker
 - Hosting: Render
 
 ## Project Structure
@@ -168,9 +167,6 @@ This keeps detection both practical (explainable rules) and adaptive (ML-assiste
 │   ├── models/
 │   ├── data/
 │   └── requirements.txt
-├── Dockerfile
-├── ml/Dockerfile
-├── render.yaml
 ├── run_project.sh
 ├── stop_project.sh
 ├── .env.example
@@ -232,99 +228,28 @@ Notes:
 - Application uses existing model artifacts under `ml/models/`.
 - Always include protocol (`https://`) in ML URLs.
 
-## 🐳 Run with Docker
+## Deployment Notes
 
-### Build Images
+This branch is configured for environment-variable driven deployment, but it does not include committed Dockerfiles or a Render blueprint.
 
-```bash
-docker build -t fraudshield-app .
-docker build -t fraudshield-ml ./ml
-```
+For any hosted deployment:
 
-### Run Services Individually
-
-Run ML service:
-
-```bash
-docker run --rm -p 5000:5000 fraudshield-ml
-```
-
-Run app service:
-
-```bash
-docker run --rm -p 8080:8080 \
-  -e SPRING_DATASOURCE_URL="jdbc:postgresql://<host>:5432/postgres?sslmode=require" \
-  -e SPRING_DATASOURCE_USERNAME="postgres" \
-  -e SPRING_DATASOURCE_PASSWORD="<password>" \
-  -e ML_API_URL="http://host.docker.internal:5000/predict" \
-  -e ML_HEALTH_URL="http://host.docker.internal:5000/health" \
-  fraudshield-app
-```
-
-### Docker Compose (Recommended)
-
-Create `docker-compose.yml`:
-
-```yaml
-version: '3.8'
-
-services:
-  ml-service:
-    build: ./ml
-    ports:
-      - "5000:5000"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  app-service:
-    build: .
-    ports:
-      - "8080:8080"
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/postgres?sslmode=require
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
-      - ML_API_URL=http://ml-service:5000/predict
-      - ML_HEALTH_URL=http://ml-service:5000/health
-    depends_on:
-      ml-service:
-        condition: service_healthy
-```
-
-Run with:
-
-```bash
-docker-compose up -d
-```
-
-## Deploy on Render
-
-1. Push repository to GitHub.
-2. In Render, create **Blueprint** deployment from `render.yaml`.
-3. Configure app environment variables.
-4. Deploy ML service, then app service.
-
-Recommended Render env values:
-
-```env
-SPRING_DATASOURCE_URL=jdbc:postgresql://aws-1-ap-south-1.pooler.supabase.com:6543/postgres?sslmode=require
-SPRING_DATASOURCE_USERNAME=postgres.ktmcqxdhjqjsltacucbo
-SPRING_DATASOURCE_PASSWORD=<your-db-password>
-ML_API_URL=https://fraudshield-ml-pwd9.onrender.com/predict
-ML_HEALTH_URL=https://fraudshield-ml-pwd9.onrender.com/health
-```
+1. Provide the environment variables listed above.
+2. Start the Spring Boot app on the platform port using `PORT`.
+3. Run the Flask ML service separately and point `ML_API_URL` and `ML_HEALTH_URL` to it.
+4. Verify `/system/health` and `/swagger-ui.html` after startup.
 
 Important:
+
 - Do not embed username/password inside `SPRING_DATASOURCE_URL`.
 - Keep DB username/password in their dedicated env variables.
-- If ML URL changes, update both `ML_API_URL` and `ML_HEALTH_URL`.
+- Rotate credentials immediately if they were ever exposed.
 
-## 🔌 API Reference
+## API Reference
 
 Base URL: `https://fraudshield-app.onrender.com` (production) or `http://localhost:8080` (local)
+
+Swagger UI: `http://localhost:8080/swagger-ui.html` (local)
 
 ### Authentication
 
@@ -412,18 +337,18 @@ curl -X POST https://fraudshield-app.onrender.com/transaction/validate \
 }
 ```
 
-## 🧪 Testing
+## Testing
 
 ### Run Unit Tests
 
 ```bash
-mvn test
+./mvnw test
 ```
 
 ### Run Integration Tests
 
 ```bash
-mvn verify
+./mvnw verify
 ```
 
 ### Test ML Service
@@ -441,7 +366,7 @@ curl -X POST http://localhost:5000/predict \
 ### Test Coverage
 
 ```bash
-mvn clean test jacoco:report
+./mvnw clean test jacoco:report
 ```
 
 View coverage report: `target/site/jacoco/index.html`
@@ -466,6 +391,7 @@ View coverage report: `target/site/jacoco/index.html`
 ## Security Notes
 
 - Never commit `.env`, `.env.local`, or production secrets.
+- Keep `src/main/resources/application.properties` limited to placeholders and non-secret defaults.
 - Rotate DB and mail credentials if exposed.
 - Use least-privilege DB credentials in production.
 - Prefer secret managers and protected CI/CD variables.
