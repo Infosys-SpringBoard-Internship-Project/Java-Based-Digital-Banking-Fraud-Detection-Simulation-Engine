@@ -21,8 +21,8 @@ AI-powered digital banking fraud detection and simulation platform built with Sp
 
 ```bash
 # 1. Clone and configure
-git clone <repo-url>
-cd fraud-project-source
+git clone https://github.com/Advikagarwal/fraudshield-subrepo.git
+cd fraudshield-subrepo
 cp .env.example .env.local
 
 # 2. Update .env.local with your database credentials
@@ -43,6 +43,7 @@ cp .env.example .env.local
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
+- [Database Schema](#database-schema)
 - [Getting Started (Local)](#getting-started-local)
 - [Environment Variables](#environment-variables)
 - [Deployment Notes](#deployment-notes)
@@ -63,6 +64,8 @@ It combines:
 - machine-learning scoring for probabilistic risk estimation
 
 The platform includes dashboard analytics, alerting, audit trails, simulation workflows, and export utilities for investigation and compliance support.
+
+Standalone repository: `https://github.com/Advikagarwal/fraudshield-subrepo`
 
 ## Problem Statement
 
@@ -155,11 +158,15 @@ This keeps detection both practical (explainable rules) and adaptive (ML-assiste
 
 ```text
 .
+├── .mvn/wrapper/                                  # Maven wrapper metadata
 ├── src/main/java/com/example/infosys_project/   # Backend source
 ├── src/main/resources/
 │   ├── application.properties
 │   ├── schema.sql
 │   ├── db/migration/
+│   │   ├── V1__add_rbac.sql
+│   │   ├── V2__password_reset_force_change.sql
+│   │   └── V3__schema_alignment.sql
 │   └── static/                                   # UI pages/scripts/styles
 ├── ml/
 │   ├── api/flask_api.py
@@ -175,14 +182,33 @@ This keeps detection both practical (explainable rules) and adaptive (ML-assiste
 ├── LICENSE
 ```
 
+## Database Schema
+
+The bootstrap schema lives in `src/main/resources/schema.sql`, and incremental changes are tracked in `src/main/resources/db/migration/`.
+
+Core tables:
+
+- `admin_users` for RBAC users, password rotation, and account lifecycle metadata.
+- `transactions` for fraud evaluation inputs and final rule/ML risk results.
+- `fraud_alerts` for investigator-facing alert records linked to transactions.
+- `api_logs` and `audit_logs` for operational tracing and compliance history.
+- `system_health` for the cached health snapshot surfaced in the admin dashboard.
+
+Migration set:
+
+- `V1__add_rbac.sql` adds RBAC fields and indexes for admin users.
+- `V2__password_reset_force_change.sql` adds forced password rotation support.
+- `V3__schema_alignment.sql` adds the missing admin metadata columns where needed, creates the `fraud_alerts -> transactions` foreign key, and seeds the default `system_health` row.
+
+For a fresh database, `schema.sql` is sufficient. For an existing database, run the migrations in order.
+
 ## Getting Started (Local)
 
 ### Prerequisites
 
 - Java 17+
-- Maven 3.8+
+- Maven 3.8+ or use the included `./mvnw`
 - Python 3.10+
-- Docker (optional)
 
 ### Steps
 
@@ -231,6 +257,8 @@ Notes:
 ## Deployment Notes
 
 This branch is configured for environment-variable driven deployment, but it does not include committed Dockerfiles or a Render blueprint.
+
+Standalone repository URL: `https://github.com/Advikagarwal/fraudshield-subrepo`
 
 For any hosted deployment:
 
