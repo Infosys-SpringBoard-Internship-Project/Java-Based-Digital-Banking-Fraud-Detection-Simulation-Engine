@@ -452,4 +452,4 @@ View coverage report: `target/site/jacoco/index.html`
 
 ## License
 
-- `LICENSE`
+-MIT. [LICENSE](LICENSE).`
